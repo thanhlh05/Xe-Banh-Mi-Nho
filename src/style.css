@@ -293,4 +293,99 @@ code {
     right: 0;
     border-right-color: var(--border);
   }
+  /* ================================
+  Main Menu
+  ================================ */
+
+  .screen {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    box-sizing: border-box;
+  }
+
+  .main-menu-screen {
+    background: #f7f1e5;
+  }
+
+  .game-card {
+    width: 100%;
+    max-width: 420px;
+    box-sizing: border-box;
+    padding: 32px 24px;
+    border-radius: 24px;
+    background: #fffdf8;
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.08);
+  }
+
+  .main-menu-card {
+    text-align: center;
+  }
+
+  .game-logo {
+    margin-bottom: 32px;
+  }
+
+  .logo-icon {
+    font-size: 64px;
+    margin-bottom: 12px;
+  }
+
+  .game-logo h1 {
+    margin: 0;
+    font-size: 32px;
+    letter-spacing: 1px;
+  }
+
+  .game-logo p {
+    margin: 8px 0 0;
+    color: #777;
+    font-size: 16px;
+  }
+
+  .main-menu-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .game-button {
+    width: 100%;
+    min-height: 52px;
+    border: none;
+    border-radius: 14px;
+    padding: 12px 20px;
+    font-size: 16px;
+    font-weight: 700;
+    cursor: pointer;
+    transition:
+      transform 0.15s ease,
+      opacity 0.15s ease;
+  }
+
+  .game-button:active {
+    transform: scale(0.98);
+  }
+
+  .game-button:hover {
+    opacity: 0.9;
+  }
+
+  .primary-button {
+    background: #e9a23b;
+    color: #ffffff;
+  }
+
+  .secondary-button {
+    background: #eee7d8;
+    color: #4a4035;
+  }
+
+  @media (min-width: 768px) {
+    .game-card {
+      padding: 40px 32px;
+    }
+  }
 }

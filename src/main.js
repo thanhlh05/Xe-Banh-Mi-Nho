@@ -1,4 +1,4 @@
-import './style.css';
-import { gameState } from './game/gameState.js';
+import "./style.css";
+import { renderMainMenu } from "./screens/mainMenuScreen.js";
 
-console.log('Xe bánh mì - Game Loaded!', gameState);
+renderMainMenu();
