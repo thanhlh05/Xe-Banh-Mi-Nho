@@ -32,9 +32,11 @@ const gameState = {
     tools: {}, // Dụng cụ (dao, kẹp, khay...), không có độ bền trong MVP
   },
 
+  upgrades: {},
+
   // Công thức bánh mì
   recipes: {
-    unlocked: [], // Danh sách các công thức đã được mở khóa
+    unlocked: ["plain", "meat", "cha", "egg"], // Danh sách các công thức đã được mở khóa
   },
 
   // Khách quen
