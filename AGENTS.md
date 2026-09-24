@@ -2,9 +2,9 @@
 
 ## 1. Project Overview
 
-Project name: Xe Bánh Mì Nhỏ
+Project name: Xe Bánh Mì
 
-Xe Bánh Mì Nhỏ is a mobile-first Vietnamese street food simulation web game.
+Xe Bánh Mì is a mobile-first Vietnamese street food simulation web game.
 
 The player manages a small bánh mì street cart, prepares ingredients, receives customer orders, makes bánh mì, serves customers, earns money, manages inventory, and gradually develops the shop.
 
@@ -630,4 +630,4 @@ If a major decision is not specified:
 * recommend a simple option when appropriate,
 * and wait for the user's decision when the choice would significantly affect the architecture or gameplay.
 
-The goal is to build Xe Bánh Mì Nhỏ step by step while keeping the project understandable, maintainable, and easy for the user to learn from.
+The goal is to build Xe Bánh Mì step by step while keeping the project understandable, maintainable, and easy for the user to learn from.

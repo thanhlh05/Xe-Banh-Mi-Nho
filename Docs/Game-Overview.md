@@ -1,10 +1,10 @@
-# Xe Bánh Mì Nhỏ
+# Xe Bánh Mì
 
 ## 1. Giới thiệu
 
-**Xe Bánh Mì Nhỏ** là một web game mô phỏng việc bán bánh mì đường phố Việt Nam.
+**Xe Bánh Mì** là một web game mô phỏng việc bán bánh mì đường phố Việt Nam.
 
-Người chơi bắt đầu với một xe bánh mì nhỏ, một số vốn hạn chế và một lượng nguyên liệu cơ bản.
+Người chơi bắt đầu với một Xe Bánh Mì, một số vốn hạn chế và một lượng nguyên liệu cơ bản.
 
 Người chơi sẽ:
 
