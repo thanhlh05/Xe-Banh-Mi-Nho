@@ -21,6 +21,11 @@ import {
   calculatePayment,
 } from "./customerResultSystem.js";
 import { gameState } from "../game/gameState.js";
+import {
+  setRecipe,
+  getSelectedIngredients,
+  clearSelectedIngredients,
+} from "./ingredientSelectionSystem.js";
 
 let currentCustomer = null;
 let currentOrder = null;
@@ -75,7 +80,8 @@ function startCustomerVisit(orderId) {
   currentCustomer = customer;
   currentOrder = order;
   lastSaleResult = null;
-
+  setRecipe(order.recipeId);
+  
   recordCustomer();
 
   return {
@@ -104,18 +110,14 @@ function canFinishCurrentSale() {
   return canCompleteSale();
 }
 
-function finishCurrentSale(selectedIngredients) {
+function finishCurrentSale() {
   if (!hasActiveCustomer()) {
     throw new Error(
       "gameplaySystem: không thể hoàn thành sale vì chưa có khách hàng đang được xử lý."
     );
   }
 
-  if (!Array.isArray(selectedIngredients)) {
-    throw new Error(
-      "gameplaySystem: selectedIngredients phải là một mảng."
-    );
-  }
+  const selectedIngredients = getSelectedIngredients();
 
   const recipeId = currentOrder.recipeId;
 
@@ -135,11 +137,6 @@ function finishCurrentSale(selectedIngredients) {
 
   const saleResult = completeSale();
 
-  /*
-   * completeSale() đã cộng giá đầy đủ của recipe.
-   * Nếu kết quả không phải PERFECT, cần điều chỉnh lại
-   * số tiền thực nhận về đúng payment đã tính.
-   */
   if (payment < saleResult.earnedMoney) {
     gameState.player.money =
       gameState.player.money -
@@ -160,7 +157,10 @@ function finishCurrentSale(selectedIngredients) {
     correctCount: result.correctCount,
     missingCount: result.missingCount,
     extraCount: result.extraCount,
+    selectedIngredients: [...selectedIngredients],
   };
+
+  clearSelectedIngredients();
 
   currentCustomer = null;
   currentOrder = null;
