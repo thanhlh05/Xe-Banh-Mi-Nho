@@ -9,6 +9,7 @@
 import { createOrder, getCurrentOrder, completeOrder } from "../systems/orderSystem.js";
 import { canMakeRecipe, makeRecipe } from "../systems/cookingSystem.js";
 import { serveCurrentOrder } from "../systems/servingSystem.js";
+import { calculateRecipeIngredientCost } from "./ingredientCostSystem.js";
 
 // 1. Bắt đầu một giao dịch bán hàng với orderId cho trước.
 // Nếu đã có order đang active thì throw Error.
@@ -50,6 +51,7 @@ function completeSale() {
   }
 
   const recipeId = currentOrder.recipeId;
+  const ingredientCost = calculateRecipeIngredientCost(recipeId);
 
   if (!canMakeRecipe(recipeId)) {
     throw new Error(
@@ -66,7 +68,10 @@ function completeSale() {
   // 3. Hoàn thành / xóa order
   completeOrder();
 
-  return serveResult;
+  return {
+    ...serveResult,
+    ingredientCost,
+  };
 }
 
 // Export để các file khác sử dụng.

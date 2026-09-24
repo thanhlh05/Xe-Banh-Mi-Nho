@@ -26,6 +26,7 @@ import {
   getSelectedIngredients,
   clearSelectedIngredients,
 } from "./ingredientSelectionSystem.js";
+import { recordCustomerVisit } from "./regularCustomerSystem.js";
 
 let currentCustomer = null;
 let currentOrder = null;
@@ -80,9 +81,11 @@ function startCustomerVisit(orderId) {
   currentCustomer = customer;
   currentOrder = order;
   lastSaleResult = null;
+
   setRecipe(order.recipeId);
   
   recordCustomer();
+  recordCustomerVisit(customer.id, order.recipeId);
 
   return {
     customer,
@@ -136,6 +139,7 @@ function finishCurrentSale() {
   }
 
   const saleResult = completeSale();
+  recordIngredientCost(saleResult.ingredientCost);
 
   if (payment < saleResult.earnedMoney) {
     gameState.player.money =
