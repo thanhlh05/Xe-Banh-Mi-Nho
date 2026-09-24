@@ -11,8 +11,16 @@ import {
   recordSale,
   recordRating,
 } from "./statisticsSystem.js";
-import { getRecipePrice } from "./moneySystem.js";
-import { getDayFlowState, DAY_FLOW_STATES } from "./dayFlowSystem.js";
+import {
+  getDayFlowState,
+  DAY_FLOW_STATES,
+} from "./dayFlowSystem.js";
+import {
+  evaluateOrder,
+  calculateRating,
+  calculatePayment,
+} from "./customerResultSystem.js";
+import { gameState } from "../game/gameState.js";
 
 let currentCustomer = null;
 let currentOrder = null;
@@ -96,12 +104,28 @@ function canFinishCurrentSale() {
   return canCompleteSale();
 }
 
-function finishCurrentSale() {
+function finishCurrentSale(selectedIngredients) {
   if (!hasActiveCustomer()) {
     throw new Error(
       "gameplaySystem: không thể hoàn thành sale vì chưa có khách hàng đang được xử lý."
     );
   }
+
+  if (!Array.isArray(selectedIngredients)) {
+    throw new Error(
+      "gameplaySystem: selectedIngredients phải là một mảng."
+    );
+  }
+
+  const recipeId = currentOrder.recipeId;
+
+  const result = evaluateOrder(
+    recipeId,
+    selectedIngredients
+  );
+
+  const rating = calculateRating(result);
+  const payment = calculatePayment(result);
 
   if (!canCompleteSale()) {
     throw new Error(
@@ -109,21 +133,33 @@ function finishCurrentSale() {
     );
   }
 
-  const recipeId = currentOrder.recipeId;
-  const price = getRecipePrice(recipeId);
+  const saleResult = completeSale();
 
-  const result = completeSale();
+  /*
+   * completeSale() đã cộng giá đầy đủ của recipe.
+   * Nếu kết quả không phải PERFECT, cần điều chỉnh lại
+   * số tiền thực nhận về đúng payment đã tính.
+   */
+  if (payment < saleResult.earnedMoney) {
+    gameState.player.money =
+      gameState.player.money -
+      saleResult.earnedMoney +
+      payment;
+  }
 
-  recordSale(price);
+  recordSale(payment);
   recordBreadSold();
-
-  const rating = 5;
   recordRating(rating);
 
   lastSaleResult = {
-    ...result,
+    ...saleResult,
     customerName: currentCustomer.name,
     rating,
+    payment,
+    resultLevel: result.level,
+    correctCount: result.correctCount,
+    missingCount: result.missingCount,
+    extraCount: result.extraCount,
   };
 
   currentCustomer = null;
