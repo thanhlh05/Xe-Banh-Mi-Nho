@@ -59,12 +59,10 @@ function renderShopNamingScreen(onComplete) {
     if (shopName.length < 2) {
       errorElement.textContent =
         "Tên xe phải có ít nhất 2 ký tự.";
-
       return;
     }
 
     gameState.shop.name = shopName;
-
     errorElement.textContent = "";
 
     if (typeof onComplete === "function") {

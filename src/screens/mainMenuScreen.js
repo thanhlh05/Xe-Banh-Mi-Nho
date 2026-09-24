@@ -2,6 +2,8 @@ import { renderHTML } from "../components/uiRenderer.js";
 import { hasSaveGame } from "../systems/saveSystem.js";
 import { renderShopNamingScreen } from "./shopNamingScreen.js";
 import { renderInitialShoppingScreen } from "./initialShoppingScreen.js";
+import { renderPreparationScreen } from "./preparationScreen.js";
+import { renderGameplayScreen } from "./gameplayScreen.js";
 
 function renderMainMenu() {
   const hasSavedGame = hasSaveGame();
@@ -58,9 +60,11 @@ function bindMainMenuEvents() {
 
   if (startButton) {
     startButton.addEventListener("click", () => {
-      renderShopNamingScreen((shopName) => {
-        renderInitialShoppingScreen(() => { 
-            console.log("Đã hoàn tất mua nguyên liệu.");
+      renderShopNamingScreen(() => {
+        renderInitialShoppingScreen(() => {
+          renderPreparationScreen(() => {
+            renderGameplayScreen();
+          });
         });
       });
     });

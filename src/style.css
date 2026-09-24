@@ -389,155 +389,336 @@ code {
     }
   }
   /* ================================
-   Shop Naming
-================================ */
-
-.shop-naming-screen,
-.shopping-screen {
-  background: #f7f1e5;
-}
-
-.screen-header {
-  text-align: center;
-  margin-bottom: 24px;
-}
-
-.screen-icon {
-  font-size: 48px;
-  margin-bottom: 8px;
-}
-
-.screen-header h1 {
-  margin: 0 0 8px;
-}
-
-.screen-header p {
-  margin: 0;
-  color: #777;
-  line-height: 1.5;
-}
-
-.game-form {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.game-form label {
-  font-weight: 700;
-}
-
-.game-form input {
-  width: 100%;
-  box-sizing: border-box;
-  min-height: 50px;
-  border: 2px solid #e5dccb;
-  border-radius: 12px;
-  padding: 12px 14px;
-  font-size: 16px;
-  outline: none;
-}
-
-.game-form input:focus {
-  border-color: #e9a23b;
-}
-
-.form-error {
-  min-height: 20px;
-  color: #c0392b;
-  font-size: 14px;
-}
-
-  /* ================================
-  Initial Shopping
+  Shop Naming
   ================================ */
 
-  .shopping-card {
-    max-width: 560px;
+  .shop-naming-screen,
+  .shopping-screen {
+    background: #f7f1e5;
   }
 
-  .money-display {
+  .screen-header {
+    text-align: center;
+    margin-bottom: 24px;
+  }
+
+  .screen-icon {
+    font-size: 48px;
+    margin-bottom: 8px;
+  }
+
+  .screen-header h1 {
+    margin: 0 0 8px;
+  }
+
+  .screen-header p {
+    margin: 0;
+    color: #777;
+    line-height: 1.5;
+  }
+
+  .game-form {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .game-form label {
+    font-weight: 700;
+  }
+
+  .game-form input {
+    width: 100%;
+    box-sizing: border-box;
+    min-height: 50px;
+    border: 2px solid #e5dccb;
+    border-radius: 12px;
+    padding: 12px 14px;
+    font-size: 16px;
+    outline: none;
+  }
+
+  .game-form input:focus {
+    border-color: #e9a23b;
+  }
+
+  .form-error {
+    min-height: 20px;
+    color: #c0392b;
+    font-size: 14px;
+  }
+
+    /* ================================
+    Initial Shopping
+    ================================ */
+
+    .shopping-card {
+      max-width: 560px;
+    }
+
+    .money-display {
+      padding: 14px;
+      margin-bottom: 16px;
+      border-radius: 12px;
+      background: #f3eadb;
+      text-align: center;
+    }
+
+    .shopping-items {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .shopping-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 12px;
+      border: 1px solid #eee4d3;
+      border-radius: 12px;
+      background: #fff;
+    }
+
+    .shopping-item-info {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .shopping-item-info span {
+      color: #888;
+      font-size: 13px;
+    }
+
+    .quantity-control {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .quantity-button {
+      width: 36px;
+      height: 36px;
+      border: none;
+      border-radius: 10px;
+      background: #eee7d8;
+      font-size: 22px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .quantity-value {
+      min-width: 24px;
+      text-align: center;
+      font-weight: 700;
+    }
+
+    .shopping-summary {
+      margin-top: 20px;
+      padding-top: 16px;
+      border-top: 1px solid #e5dccb;
+    }
+
+    .shopping-summary > div:first-child {
+      margin-bottom: 8px;
+      text-align: center;
+      font-size: 18px;
+    }
+
+    @media (max-width: 480px) {
+      .shopping-item {
+        align-items: flex-start;
+      }
+
+      .shopping-item-info strong {
+        font-size: 14px;
+      }
+
+      .shopping-item-info span {
+        font-size: 12px;
+      }
+    }
+    /* ================================
+    Preparation
+  ================================ */
+
+  .preparation-screen {
+    background: #f7f1e5;
+  }
+
+  .preparation-card {
+    max-width: 520px;
+  }
+
+  .preparation-info {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-bottom: 24px;
+  }
+
+  .preparation-info > div {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
     padding: 14px;
-    margin-bottom: 16px;
     border-radius: 12px;
     background: #f3eadb;
     text-align: center;
   }
 
-  .shopping-items {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-  }
-
-  .shopping-item {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 12px;
-    padding: 12px;
-    border: 1px solid #eee4d3;
-    border-radius: 12px;
-    background: #fff;
-  }
-
-  .shopping-item-info {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-  }
-
-  .shopping-item-info span {
-    color: #888;
+  .preparation-info span {
+    color: #777;
     font-size: 13px;
   }
 
-  .quantity-control {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-  }
-
-  .quantity-button {
-    width: 36px;
-    height: 36px;
-    border: none;
-    border-radius: 10px;
-    background: #eee7d8;
-    font-size: 22px;
-    font-weight: 700;
-    cursor: pointer;
-  }
-
-  .quantity-value {
-    min-width: 24px;
-    text-align: center;
-    font-weight: 700;
-  }
-
-  .shopping-summary {
-    margin-top: 20px;
-    padding-top: 16px;
-    border-top: 1px solid #e5dccb;
-  }
-
-  .shopping-summary > div:first-child {
-    margin-bottom: 8px;
-    text-align: center;
+  .preparation-info strong {
     font-size: 18px;
   }
 
+  .preparation-card h2 {
+    margin-bottom: 12px;
+    font-size: 18px;
+  }
+
+  .preparation-inventory {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 20px;
+  }
+
+  .preparation-item {
+    display: flex;
+    justify-content: space-between;
+    padding: 12px 14px;
+    border-radius: 10px;
+    background: #fff;
+    border: 1px solid #eee4d3;
+  }
+
+  #start-day-button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  #start-day-button.ready {
+    background: #6c9f58;
+    color: #fff;
+  }
+  /* ================================
+  Gameplay
+  ================================ */
+
+  .gameplay-screen {
+    align-items: flex-start;
+    background: #f7f1e5;
+    padding-top: 16px;
+  }
+
+  .gameplay-container {
+    width: 100%;
+    max-width: 720px;
+  }
+
+  .gameplay-header {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+    margin-bottom: 16px;
+  }
+
+  .gameplay-header > div {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    padding: 10px;
+    border-radius: 12px;
+    background: #fffdf8;
+    text-align: center;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  }
+
+  .gameplay-header span {
+    color: #777;
+    font-size: 12px;
+  }
+
+  .gameplay-header strong {
+    font-size: 15px;
+  }
+
+  .customer-area {
+    min-height: 400px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .customer-card {
+    width: 100%;
+    max-width: 460px;
+    padding: 32px 24px;
+    box-sizing: border-box;
+    border-radius: 24px;
+    background: #fffdf8;
+    text-align: center;
+    box-shadow: 0 10px 28px rgba(0, 0, 0, 0.07);
+  }
+
+  .customer-icon {
+    font-size: 64px;
+    margin-bottom: 12px;
+  }
+
+  .customer-card h2 {
+    margin: 0 0 6px;
+  }
+
+  .customer-type {
+    margin: 0 0 20px;
+    color: #888;
+    font-size: 14px;
+  }
+
+  .customer-order {
+    padding: 16px;
+    margin-bottom: 20px;
+    border-radius: 14px;
+    background: #f3eadb;
+  }
+
+  .customer-order span {
+    display: block;
+    margin-bottom: 6px;
+    color: #777;
+  }
+
+  .waiting-customer p,
+  .no-customer p {
+    color: #777;
+    margin-bottom: 20px;
+  }
+
+  .waiting-customer small {
+    display: block;
+    margin-top: 12px;
+    color: #aaa;
+  }
+
+  .gameplay-actions {
+    margin-top: 12px;
+  }
+
   @media (max-width: 480px) {
-    .shopping-item {
-      align-items: flex-start;
+    .gameplay-header strong {
+      font-size: 13px;
     }
 
-    .shopping-item-info strong {
-      font-size: 14px;
-    }
-
-    .shopping-item-info span {
-      font-size: 12px;
+    .customer-area {
+      min-height: 350px;
     }
   }
 }
