@@ -11,6 +11,7 @@ import {
   getDayFlowState,
   DAY_FLOW_STATES,
   prepareNextDay,
+  openDaySummary,
 } from "../systems/dayFlowSystem.js";
 
 import {
@@ -24,6 +25,10 @@ import {
 import {
   renderGameplayScreen,
 } from "./gameplayScreen.js";
+
+import {
+  INGREDIENTS,
+} from "../data/ingredients.js";
 
 function renderDaySummaryScreen() {
   const currentState =
@@ -41,18 +46,15 @@ function renderDaySummaryScreen() {
   }
 
   /*
-   * Nếu save đang ở DAY_ENDED,
-   * chuyển sang SUMMARY trước khi hiển thị.
-   *
-   * Nếu đã là SUMMARY thì giữ nguyên.
-   */
+  * Nếu save đang ở DAY_ENDED,
+  * chuyển sang SUMMARY trước khi hiển thị.
+  *
+  * Nếu đã là SUMMARY thì giữ nguyên.
+  */
   if (
     currentState ===
     DAY_FLOW_STATES.DAY_ENDED
   ) {
-    const { openDaySummary } =
-      requireDayFlowSummaryFunction();
-
     openDaySummary();
   }
 
@@ -65,17 +67,23 @@ function renderDaySummaryScreen() {
     );
 
   const wasteHTML =
-    wasteEntries.length === 0
-      ? "<p>Không có nguyên liệu bị bỏ đi.</p>"
-      : wasteEntries
-          .map(
-            ([itemId, quantity]) =>
-              `<div>
-                <span>${itemId}</span>
-                <strong>${quantity}</strong>
-              </div>`
-          )
-          .join("");
+  wasteEntries.length === 0
+    ? "<p>Không có nguyên liệu bị bỏ đi.</p>"
+    : wasteEntries
+        .map(([itemId, quantity]) => {
+          const ingredient = INGREDIENTS[itemId];
+
+          const ingredientName =
+            ingredient?.name ?? itemId;
+
+          return `
+            <div>
+              <span>${ingredientName}</span>
+              <strong>${quantity}</strong>
+            </div>
+          `;
+        })
+        .join("");
 
   renderHTML(`
     <main class="screen summary-screen">
@@ -84,56 +92,56 @@ function renderDaySummaryScreen() {
         <div class="screen-header">
           <div class="screen-icon">🌙</div>
 
-          <h1>
-            Tổng kết ngày ${summary.day}
-          </h1>
+            <h1>
+              HẾT NGÀY
+            </h1>
 
-          <p>
-            Một ngày bán hàng đã kết thúc.
-          </p>
+            <p>
+              Ngày ${summary.day}
+            </p>
         </div>
 
         <div class="summary-stats">
 
           <div>
-            <span>Doanh thu</span>
-            <strong>
-              ${formatMoney(summary.revenue)}
-            </strong>
-          </div>
-
-          <div>
-            <span>Chi phí nguyên liệu</span>
-            <strong>
-              ${formatMoney(summary.ingredientCost)}
-            </strong>
-          </div>
-
-          <div>
-            <span>Lợi nhuận</span>
-            <strong>
-              ${formatMoney(summary.profit)}
-            </strong>
-          </div>
-
-          <div>
-            <span>Khách hàng</span>
+            <span>👥 Khách hàng</span>
             <strong>
               ${summary.customers}
             </strong>
           </div>
 
           <div>
-            <span>Bánh đã bán</span>
+            <span>🥖 Bánh bán</span>
             <strong>
               ${summary.breadsSold}
             </strong>
           </div>
 
           <div>
-            <span>Rating trung bình</span>
+            <span>💰 Doanh thu</span>
             <strong>
-              ${summary.averageRating.toFixed(1)} ★
+              ${formatMoney(summary.revenue)}
+            </strong>
+          </div>
+
+          <div>
+            <span>🛒 Chi phí</span>
+            <strong>
+              ${formatMoney(summary.ingredientCost)}
+            </strong>
+          </div>
+
+          <div>
+            <span>📈 Lợi nhuận</span>
+            <strong>
+              ${formatMoney(summary.profit)}
+            </strong>
+          </div>
+
+          <div>
+            <span>⭐ Đánh giá</span>
+            <strong>
+              ${summary.averageRating.toFixed(1)}
             </strong>
           </div>
 
@@ -152,7 +160,7 @@ function renderDaySummaryScreen() {
             type="button"
             class="game-button primary-button"
           >
-            CHUẨN BỊ NGÀY TIẾP THEO
+            TIẾP TỤC CHUẨN BỊ
           </button>
 
           <button
@@ -220,21 +228,7 @@ function bindSummaryEvents() {
   }
 }
 
-/*
- * Import động không cần thiết ở trạng thái bình thường.
- *
- * Hàm này tồn tại để tránh thay đổi cấu trúc
- * import hiện tại của màn hình.
- */
-function requireDayFlowSummaryFunction() {
-  return {
-    openDaySummary: () => {
-      throw new Error(
-        "daySummaryScreen: trạng thái DAY_ENDED cần được mở summary thông qua dayFlowSystem trước khi render."
-      );
-    },
-  };
-}
+
 
 export {
   renderDaySummaryScreen,
