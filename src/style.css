@@ -721,4 +721,197 @@ code {
       min-height: 350px;
     }
   }
+  /* ================================
+  Make Bread
+  ================================ */
+
+  .make-bread-screen,
+  .serving-result-screen {
+    background: #f7f1e5;
+  }
+
+  .make-bread-card,
+  .serving-result-card {
+    max-width: 560px;
+  }
+
+  .make-bread-card h2 {
+    font-size: 18px;
+    margin: 20px 0 12px;
+  }
+
+  .ingredient-selection {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+
+  .ingredient-button {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    min-height: 48px;
+    padding: 10px 12px;
+    border: 1px solid #e5dccb;
+    border-radius: 12px;
+    background: #fff;
+    cursor: pointer;
+    font-weight: 600;
+  }
+
+  .ingredient-button:hover {
+    background: #f8f1e5;
+  }
+
+  .ingredient-check {
+    font-size: 20px;
+  }
+
+  .selected-ingredients {
+    margin: 16px 0;
+    padding: 14px;
+    border-radius: 12px;
+    background: #f3eadb;
+  }
+
+  .selected-ingredients span {
+    display: block;
+    margin-bottom: 6px;
+    color: #777;
+    font-size: 13px;
+  }
+
+  .selected-ingredients strong {
+    line-height: 1.5;
+  }
+
+  /* ================================
+    Serving Result
+  ================================ */
+
+  .serving-result-card {
+    text-align: center;
+  }
+
+  .result-icon {
+    font-size: 64px;
+    margin-bottom: 12px;
+  }
+
+  .serving-result-card h1 {
+    margin-bottom: 8px;
+  }
+
+  .serving-result-card h2 {
+    margin-top: 0;
+    color: #777;
+  }
+
+  .rating-stars {
+    margin: 20px 0 8px;
+    font-size: 32px;
+    letter-spacing: 3px;
+  }
+
+  .result-level {
+    margin-bottom: 24px;
+    font-weight: 700;
+  }
+
+  .result-details {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-bottom: 24px;
+  }
+
+  .result-details > div {
+    display: flex;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 14px;
+    border-radius: 12px;
+    background: #f3eadb;
+    text-align: left;
+  }
+
+  .result-details span {
+    color: #777;
+  }
+
+  .result-details strong {
+    text-align: right;
+  }
+
+  @media (max-width: 420px) {
+    .ingredient-selection {
+      grid-template-columns: 1fr;
+    }
+  }
+  /* ================================
+  Day Summary
+  ================================ */
+
+  .summary-screen {
+    background: #f7f1e5;
+  }
+
+  .summary-card {
+    max-width: 560px;
+  }
+
+  .summary-stats {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-bottom: 24px;
+  }
+
+  .summary-stats > div {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    padding: 14px;
+    border-radius: 12px;
+    background: #f3eadb;
+  }
+
+  .summary-stats span {
+    color: #777;
+    font-size: 13px;
+  }
+
+  .summary-stats strong {
+    font-size: 17px;
+  }
+
+  .summary-waste {
+    margin-bottom: 24px;
+  }
+
+  .summary-waste h2 {
+    font-size: 18px;
+    margin-bottom: 10px;
+  }
+
+  .summary-waste > div {
+    display: flex;
+    justify-content: space-between;
+    padding: 10px 12px;
+    margin-bottom: 6px;
+    border-radius: 10px;
+    background: #fff;
+  }
+
+  .summary-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  @media (max-width: 420px) {
+    .summary-stats {
+      grid-template-columns: 1fr;
+    }
+  }
 }

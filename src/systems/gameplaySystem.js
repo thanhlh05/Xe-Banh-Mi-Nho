@@ -10,6 +10,7 @@ import {
   recordBreadSold,
   recordSale,
   recordRating,
+  recordIngredientCost,
 } from "./statisticsSystem.js";
 import {
   getDayFlowState,

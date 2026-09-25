@@ -7,20 +7,36 @@ import {
   getDayFlowState,
   DAY_FLOW_STATES,
   advanceDayTime,
+  openDaySummary,
 } from "../systems/dayFlowSystem.js";
 import {
   createQueue,
   hasWaitingCustomer,
   getNextOrderId,
   moveToNextCustomer,
+  getQueueLength,
 } from "../systems/customerQueueSystem.js";
 import {
   startCustomerVisit,
   hasActiveCustomer,
   getCurrentCustomer,
   getCurrentGameplayOrder,
+  resetGameplay,
 } from "../systems/gameplaySystem.js";
 import { RECIPES } from "../data/recipes.js";
+import { renderMakeBreadScreen } from "./makeBreadScreen.js";
+import { renderServingResultScreen } from "./servingResultScreen.js";
+import { renderDaySummaryScreen } from "./daySummaryScreen.js";
+
+let queueInitializedDay = null;
+
+const DAILY_ORDER_IDS = [
+  "order_001",
+  "order_002",
+  "order_003",
+  "order_005",
+  "order_006",
+];
 
 function formatGameTime() {
   const time = getCurrentTime();
@@ -30,15 +46,19 @@ function formatGameTime() {
   ).padStart(2, "0")}`;
 }
 
+function initializeDailyQueue() {
+  const currentDay = gameState.day.current;
+
+  if (queueInitializedDay === currentDay && getQueueLength() > 0) {
+    return;
+  }
+
+  createQueue(DAILY_ORDER_IDS);
+  queueInitializedDay = currentDay;
+}
+
 function renderGameplayScreen() {
-  // Phải gọi sau startPreparedDay() (state = PLAYING)
-  createQueue([
-    "order_001",
-    "order_002",
-    "order_003",
-    "order_005",
-    "order_006",
-  ]);
+  initializeDailyQueue();
 
   renderHTML(`
     <main class="screen gameplay-screen">
@@ -46,6 +66,7 @@ function renderGameplayScreen() {
       <section class="gameplay-container">
 
         <header class="gameplay-header">
+
           <div>
             <span>Ngày</span>
             <strong>${gameState.day.current}</strong>
@@ -64,6 +85,7 @@ function renderGameplayScreen() {
               ${formatMoney(gameState.player.money)}
             </strong>
           </div>
+
         </header>
 
         <section
@@ -101,6 +123,7 @@ function renderCustomerArea() {
 
     return `
       <div class="customer-card active-customer">
+
         <div class="customer-icon">👤</div>
 
         <h2>${customer.name}</h2>
@@ -121,6 +144,7 @@ function renderCustomerArea() {
         >
           LÀM BÁNH
         </button>
+
       </div>
     `;
   }
@@ -130,6 +154,7 @@ function renderCustomerArea() {
 
     return `
       <div class="customer-card waiting-customer">
+
         <div class="customer-icon">👋</div>
 
         <h2>Có khách đang chờ!</h2>
@@ -149,12 +174,14 @@ function renderCustomerArea() {
         <small>
           Order: ${nextOrderId}
         </small>
+
       </div>
     `;
   }
 
   return `
     <div class="customer-card no-customer">
+
       <div class="customer-icon">🪑</div>
 
       <h2>Chưa có khách</h2>
@@ -162,6 +189,7 @@ function renderCustomerArea() {
       <p>
         Hãy chờ thêm một chút...
       </p>
+
     </div>
   `;
 }
@@ -199,15 +227,19 @@ function bindCustomerButton() {
 
   if (nextCustomerButton) {
     nextCustomerButton.addEventListener("click", () => {
-      const orderId = moveToNextCustomer();
+      try {
+        const orderId = moveToNextCustomer();
 
-      if (!orderId) {
-        return;
+        if (!orderId) {
+          return;
+        }
+
+        startCustomerVisit(orderId);
+
+        refreshGameplay();
+      } catch (error) {
+        console.error(error);
       }
-
-      startCustomerVisit(orderId);
-
-      refreshGameplay();
     });
   }
 
@@ -217,9 +249,15 @@ function bindCustomerButton() {
 
   if (serveButton) {
     serveButton.addEventListener("click", () => {
-      console.log(
-        "Gameplay: chuyển sang màn hình làm bánh."
-      );
+      try {
+        renderMakeBreadScreen((result) => {
+          renderServingResultScreen(result, () => {
+            renderGameplayScreen();
+          });
+        });
+      } catch (error) {
+        console.error(error);
+      }
     });
   }
 }
@@ -239,6 +277,19 @@ function bindGameplayEvents() {
 
       try {
         advanceDayTime(30);
+
+        if (
+          getDayFlowState() === DAY_FLOW_STATES.DAY_ENDED
+        ) {
+          resetGameplay();
+
+          openDaySummary();
+
+          renderDaySummaryScreen();
+
+          return;
+        }
+
         refreshGameplay();
       } catch (error) {
         console.error(error);
