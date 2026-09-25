@@ -1,7 +1,29 @@
 import { INGREDIENTS } from "../data/ingredients.js";
+import { gameState } from "../game/gameState.js";
+import { autoSave } from "./autoSaveSystem.js";
 
-let selectedIngredients = [];
-let currentRecipeId = null;
+function ensureRuntimeSelection() {
+  if (!gameState.runtime) {
+    gameState.runtime = {};
+  }
+
+  if (!gameState.runtime.ingredientSelection) {
+    gameState.runtime.ingredientSelection = {
+      currentRecipeId: null,
+      selectedIngredients: [],
+    };
+  }
+
+  if (
+    !Array.isArray(
+      gameState.runtime.ingredientSelection
+        .selectedIngredients
+    )
+  ) {
+    gameState.runtime.ingredientSelection
+      .selectedIngredients = [];
+  }
+}
 
 function validateIngredientId(ingredientId) {
   if (!INGREDIENTS[ingredientId]) {
@@ -12,38 +34,67 @@ function validateIngredientId(ingredientId) {
 }
 
 function setRecipe(recipeId) {
-  if (typeof recipeId !== "string" || recipeId.length === 0) {
+  if (
+    typeof recipeId !== "string" ||
+    recipeId.length === 0
+  ) {
     throw new Error(
       `ingredientSelectionSystem: recipeId phải là chuỗi không rỗng, nhận được "${recipeId}".`
     );
   }
 
-  currentRecipeId = recipeId;
+  ensureRuntimeSelection();
+
+  gameState.runtime.ingredientSelection.currentRecipeId =
+    recipeId;
+
   clearSelectedIngredients();
 }
 
 function getCurrentRecipeId() {
-  return currentRecipeId;
+  ensureRuntimeSelection();
+
+  return gameState.runtime.ingredientSelection
+    .currentRecipeId;
 }
 
 function selectIngredient(ingredientId) {
   validateIngredientId(ingredientId);
 
-  if (selectedIngredients.includes(ingredientId)) {
+  ensureRuntimeSelection();
+
+  const selectedIngredients =
+    gameState.runtime.ingredientSelection
+      .selectedIngredients;
+
+  if (
+    selectedIngredients.includes(
+      ingredientId
+    )
+  ) {
     return getSelectedIngredients();
   }
 
-  selectedIngredients.push(ingredientId);
+  selectedIngredients.push(
+    ingredientId
+  );
 
   return getSelectedIngredients();
 }
 
-function removeSelectedIngredient(ingredientId) {
+function removeSelectedIngredient(
+  ingredientId
+) {
   validateIngredientId(ingredientId);
 
-  selectedIngredients = selectedIngredients.filter(
-    (id) => id !== ingredientId
-  );
+  ensureRuntimeSelection();
+
+  gameState.runtime.ingredientSelection
+    .selectedIngredients =
+    gameState.runtime.ingredientSelection
+      .selectedIngredients.filter(
+        (id) => id !== ingredientId
+      );
 
   return getSelectedIngredients();
 }
@@ -51,30 +102,61 @@ function removeSelectedIngredient(ingredientId) {
 function toggleIngredient(ingredientId) {
   validateIngredientId(ingredientId);
 
-  if (selectedIngredients.includes(ingredientId)) {
-    return removeSelectedIngredient(ingredientId);
+  ensureRuntimeSelection();
+
+  let result;
+
+  if (
+    gameState.runtime.ingredientSelection
+      .selectedIngredients.includes(
+        ingredientId
+      )
+  ) {
+    result = removeSelectedIngredient(
+      ingredientId
+    );
+  } else {
+    result = selectIngredient(
+      ingredientId
+    );
   }
 
-  return selectIngredient(ingredientId);
+  autoSave();
+
+  return result;
 }
 
 function getSelectedIngredients() {
-  return [...selectedIngredients];
+  ensureRuntimeSelection();
+
+  return [
+    ...gameState.runtime.ingredientSelection
+      .selectedIngredients,
+  ];
 }
 
 function hasSelectedIngredient(ingredientId) {
   validateIngredientId(ingredientId);
 
-  return selectedIngredients.includes(ingredientId);
+  return getSelectedIngredients()
+    .includes(ingredientId);
 }
 
 function clearSelectedIngredients() {
-  selectedIngredients = [];
+  ensureRuntimeSelection();
+
+  gameState.runtime.ingredientSelection
+    .selectedIngredients = [];
 }
 
 function resetSelection() {
-  selectedIngredients = [];
-  currentRecipeId = null;
+  ensureRuntimeSelection();
+
+  gameState.runtime.ingredientSelection
+    .selectedIngredients = [];
+
+  gameState.runtime.ingredientSelection
+    .currentRecipeId = null;
 }
 
 export {

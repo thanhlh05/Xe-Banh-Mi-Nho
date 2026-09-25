@@ -21,6 +21,8 @@ import {
   hasActiveCustomer,
   getCurrentCustomer,
   getCurrentGameplayOrder,
+  getLastSaleResult,
+  clearLastSaleResult,
   resetGameplay,
 } from "../systems/gameplaySystem.js";
 
@@ -63,15 +65,30 @@ function formatGameTime() {
 function initializeDailyQueue() {
   const currentDay = gameState.day.current;
 
-  if (queueInitializedDay === currentDay) {
+  const savedQueue =
+    gameState.runtime?.customerQueue;
+
+  const savedSpawn =
+    gameState.runtime?.customerSpawn;
+
+  const queueBelongsToCurrentDay =
+    savedQueue &&
+    savedQueue.day === currentDay;
+
+  const spawnBelongsToCurrentDay =
+    savedSpawn &&
+    savedSpawn.day === currentDay;
+
+  if (
+    queueBelongsToCurrentDay &&
+    spawnBelongsToCurrentDay
+  ) {
     return;
   }
 
   createQueue(DAILY_ORDER_IDS);
 
   resetSpawnSystem();
-
-  queueInitializedDay = currentDay;
 }
 
 function trySpawnCustomer() {
@@ -97,7 +114,44 @@ function getCustomerProgress() {
 function renderGameplayScreen() {
   initializeDailyQueue();
 
+  const lastSaleResult =
+    getLastSaleResult();
+
+  if (lastSaleResult) {
+    renderServingResultScreen(
+      lastSaleResult,
+      () => {
+        clearLastSaleResult();
+        renderGameplayScreen();
+      }
+    );
+
+    return;
+  }
+
+  if (hasActiveCustomer()) {
+    renderMakeBreadScreen((result) => {
+      renderServingResultScreen(result, () => {
+        clearLastSaleResult();
+        renderGameplayScreen();
+      });
+    });
+
+    return;
+  }
+
   trySpawnCustomer();
+
+  if (hasActiveCustomer()) {
+    renderMakeBreadScreen((result) => {
+      renderServingResultScreen(result, () => {
+        clearLastSaleResult();
+        renderGameplayScreen();
+      });
+    });
+
+    return;
+  }
 
   renderHTML(`
     <main class="screen gameplay-screen">

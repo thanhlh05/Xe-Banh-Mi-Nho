@@ -1,19 +1,25 @@
-// src/systems/orderSystem.js
-//
-// File này quản lý "đơn hàng hiện tại" (current order) của game.
-// Nó dùng dữ liệu mẫu SAMPLE_ORDERS để tạo order, và lưu order đang
-// active trong một biến module-level đơn giản (chưa lưu vào gameState).
-//
-// File này KHÔNG xử lý inventory, tiền, rating, UI hay LocalStorage.
-
 import { SAMPLE_ORDERS } from "../data/orders.js";
+import { gameState } from "../game/gameState.js";
 
-// Biến lưu order hiện tại. Mặc định chưa có order nào (null).
-let currentOrder = null;
+function ensureRuntimeGameplay() {
+  if (!gameState.runtime) {
+    gameState.runtime = {};
+  }
 
-// 1. Tạo order hiện tại dựa vào orderId, lấy dữ liệu từ SAMPLE_ORDERS.
-function createOrder(orderId) {
-  const foundOrder = SAMPLE_ORDERS.find((order) => order.id === orderId);
+  if (!gameState.runtime.gameplay) {
+    gameState.runtime.gameplay = {
+      currentCustomerId: null,
+      currentOrderId: null,
+      lastSaleResult: null,
+    };
+  }
+}
+
+function getOrderById(orderId) {
+  const foundOrder =
+    SAMPLE_ORDERS.find(
+      (order) => order.id === orderId
+    );
 
   if (!foundOrder) {
     throw new Error(
@@ -21,30 +27,55 @@ function createOrder(orderId) {
     );
   }
 
-  // Lưu trực tiếp order tìm được, không tạo bản sao (copy) không cần thiết.
-  currentOrder = foundOrder;
+  return foundOrder;
 }
 
-// 2. Trả về order hiện tại. Nếu chưa có thì trả về null.
+function createOrder(orderId) {
+  const foundOrder =
+    getOrderById(orderId);
+
+  ensureRuntimeGameplay();
+
+  gameState.runtime.gameplay.currentOrderId =
+    foundOrder.id;
+}
+
 function getCurrentOrder() {
-  return currentOrder;
+  ensureRuntimeGameplay();
+
+  const currentOrderId =
+    gameState.runtime.gameplay
+      .currentOrderId;
+
+  if (!currentOrderId) {
+    return null;
+  }
+
+  return getOrderById(
+    currentOrderId
+  );
 }
 
-// 3. Kiểm tra xem có đang tồn tại order hiện tại hay không.
 function hasCurrentOrder() {
-  return currentOrder !== null;
+  return getCurrentOrder() !== null;
 }
 
-// 4. Hoàn thành order hiện tại: xóa order khỏi bộ nhớ (đặt lại về null).
 function completeOrder() {
-  if (currentOrder === null) {
+  if (!hasCurrentOrder()) {
     throw new Error(
       "orderSystem: không thể hoàn thành vì hiện chưa có order nào đang active."
     );
   }
 
-  currentOrder = null;
+  ensureRuntimeGameplay();
+
+  gameState.runtime.gameplay.currentOrderId =
+    null;
 }
 
-// Export để các file khác sử dụng.
-export { createOrder, getCurrentOrder, hasCurrentOrder, completeOrder };
+export {
+  createOrder,
+  getCurrentOrder,
+  hasCurrentOrder,
+  completeOrder,
+};

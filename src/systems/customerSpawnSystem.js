@@ -1,3 +1,5 @@
+import { gameState } from "../game/gameState.js";
+
 import {
   getCurrentTime,
 } from "./timeSystem.js";
@@ -18,6 +20,8 @@ import {
   hasActiveCustomer,
 } from "./gameplaySystem.js";
 
+import { autoSave } from "./autoSaveSystem.js";
+
 const CUSTOMER_SPAWN_TIMES = [
   { hour: 6, minute: 30 },
   { hour: 7, minute: 0 },
@@ -37,7 +41,37 @@ const CUSTOMER_SPAWN_TIMES = [
   { hour: 20, minute: 0 },
 ];
 
-let spawnedOrders = [];
+function ensureRuntimeSpawn() {
+  if (!gameState.runtime) {
+    gameState.runtime = {};
+  }
+
+  if (!gameState.runtime.customerSpawn) {
+    gameState.runtime.customerSpawn = {
+      day: gameState.day.current,
+      spawnedOrders: [],
+    };
+  }
+
+  if (
+    !Number.isInteger(
+      gameState.runtime.customerSpawn.day
+    )
+  ) {
+    gameState.runtime.customerSpawn.day =
+      gameState.day.current;
+  }
+
+  if (
+    !Array.isArray(
+      gameState.runtime.customerSpawn
+        .spawnedOrders
+    )
+  ) {
+    gameState.runtime.customerSpawn
+      .spawnedOrders = [];
+  }
+}
 
 function convertTimeToMinutes(hour, minute) {
   return hour * 60 + minute;
@@ -53,17 +87,25 @@ function getCurrentTimeInMinutes() {
 }
 
 function getSpawnTimes() {
-  return CUSTOMER_SPAWN_TIMES.map((spawnTime) => ({
-    ...spawnTime,
-  }));
+  return CUSTOMER_SPAWN_TIMES.map(
+    (spawnTime) => ({
+      ...spawnTime,
+    })
+  );
 }
 
 function hasAlreadySpawned(orderId) {
-  return spawnedOrders.includes(orderId);
+  ensureRuntimeSpawn();
+
+  return gameState.runtime.customerSpawn
+    .spawnedOrders.includes(orderId);
 }
 
 function canSpawnCustomer() {
-  if (getDayFlowState() !== DAY_FLOW_STATES.PLAYING) {
+  if (
+    getDayFlowState() !==
+    DAY_FLOW_STATES.PLAYING
+  ) {
     return false;
   }
 
@@ -79,15 +121,20 @@ function canSpawnCustomer() {
 }
 
 function getAvailableSpawnTime() {
-  const currentTime = getCurrentTimeInMinutes();
+  const currentTime =
+    getCurrentTimeInMinutes();
 
   for (const spawnTime of CUSTOMER_SPAWN_TIMES) {
-    const spawnTimeInMinutes = convertTimeToMinutes(
-      spawnTime.hour,
-      spawnTime.minute
-    );
+    const spawnTimeInMinutes =
+      convertTimeToMinutes(
+        spawnTime.hour,
+        spawnTime.minute
+      );
 
-    if (spawnTimeInMinutes <= currentTime) {
+    if (
+      spawnTimeInMinutes <=
+      currentTime
+    ) {
       continue;
     }
 
@@ -102,32 +149,48 @@ function shouldSpawnCustomer() {
     return false;
   }
 
-  const currentTime = getCurrentTimeInMinutes();
+  const currentTime =
+    getCurrentTimeInMinutes();
 
-  const nextOrderId = getNextOrderId();
+  const nextOrderId =
+    getNextOrderId();
 
   if (!nextOrderId) {
     return false;
   }
 
-  if (hasAlreadySpawned(nextOrderId)) {
+  if (
+    hasAlreadySpawned(nextOrderId)
+  ) {
     return false;
   }
 
-  const spawnIndex = spawnedOrders.length;
+  ensureRuntimeSpawn();
 
-  if (spawnIndex >= CUSTOMER_SPAWN_TIMES.length) {
+  const spawnIndex =
+    gameState.runtime.customerSpawn
+      .spawnedOrders.length;
+
+  if (
+    spawnIndex >=
+    CUSTOMER_SPAWN_TIMES.length
+  ) {
     return false;
   }
 
-  const spawnTime = CUSTOMER_SPAWN_TIMES[spawnIndex];
+  const spawnTime =
+    CUSTOMER_SPAWN_TIMES[spawnIndex];
 
-  const spawnTimeInMinutes = convertTimeToMinutes(
-    spawnTime.hour,
-    spawnTime.minute
+  const spawnTimeInMinutes =
+    convertTimeToMinutes(
+      spawnTime.hour,
+      spawnTime.minute
+    );
+
+  return (
+    currentTime >=
+    spawnTimeInMinutes
   );
-
-  return currentTime >= spawnTimeInMinutes;
 }
 
 function spawnNextCustomer() {
@@ -135,15 +198,25 @@ function spawnNextCustomer() {
     return null;
   }
 
-  const orderId = moveToNextCustomer();
+  const orderId =
+    moveToNextCustomer();
 
   if (!orderId) {
     return null;
   }
 
-  const customerVisit = startCustomerVisit(orderId);
+  const customerVisit =
+    startCustomerVisit(orderId);
 
-  spawnedOrders.push(orderId);
+  ensureRuntimeSpawn();
+
+  gameState.runtime.customerSpawn.day =
+    gameState.day.current;
+
+  gameState.runtime.customerSpawn
+    .spawnedOrders.push(orderId);
+
+  autoSave();
 
   return {
     orderId,
@@ -153,11 +226,22 @@ function spawnNextCustomer() {
 }
 
 function getSpawnedOrders() {
-  return [...spawnedOrders];
+  ensureRuntimeSpawn();
+
+  return [
+    ...gameState.runtime.customerSpawn
+      .spawnedOrders,
+  ];
 }
 
 function resetSpawnSystem() {
-  spawnedOrders = [];
+  ensureRuntimeSpawn();
+
+  gameState.runtime.customerSpawn.day =
+    gameState.day.current;
+
+  gameState.runtime.customerSpawn
+    .spawnedOrders = [];
 }
 
 export {

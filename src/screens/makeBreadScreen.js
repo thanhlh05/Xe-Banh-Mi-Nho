@@ -11,7 +11,6 @@ import {
 import {
   toggleIngredient,
   getSelectedIngredients,
-  resetSelection,
 } from "../systems/ingredientSelectionSystem.js";
 
 import { getItemQuantity } from "../systems/inventorySystem.js";
@@ -55,6 +54,7 @@ function renderIngredientButtons(recipe) {
       recipe.ingredients.includes(ingredientId);
 
     const isEmpty = quantity <= 0;
+    const isSelected = getSelectedIngredients().includes(ingredientId);
 
     return `
       <button
@@ -79,7 +79,13 @@ function renderIngredientButtons(recipe) {
           class="ingredient-check"
           data-check-for="${ingredientId}"
         >
-          ${isEmpty ? "HẾT" : "○"}
+          ${
+            isEmpty
+              ? "HẾT"
+              : isSelected
+                ? "✓"
+                : "○"
+          }
         </span>
 
       </button>
@@ -119,8 +125,6 @@ function renderMakeBreadScreen(onResult) {
       `makeBreadScreen: recipeId "${order.recipeId}" không tồn tại.`
     );
   }
-
-  resetSelection();
 
   renderHTML(`
     <main class="screen make-bread-screen">

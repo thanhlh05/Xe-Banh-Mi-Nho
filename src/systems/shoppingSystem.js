@@ -4,6 +4,7 @@ import { SHOPPING_PRICES } from "../data/shoppingPrices.js";
 import { INGREDIENTS } from "../data/ingredients.js";
 import { spendMoney } from "./moneySystem.js";
 import { addItem } from "./inventorySystem.js";
+import { autoSave } from "./autoSaveSystem.js";
 
 // Kiểm tra item có tồn tại và có thể mua hay không.
 function validatePurchasableItem(itemId) {
@@ -22,7 +23,8 @@ function validatePurchasableItem(itemId) {
 
 // Kiểm tra số lượng mua.
 function validateQuantity(quantity) {
-  const isValid = Number.isInteger(quantity) && quantity > 0;
+  const isValid =
+    Number.isInteger(quantity) && quantity > 0;
 
   if (!isValid) {
     throw new Error(
@@ -48,10 +50,14 @@ function calculateItemCost(itemId, quantity) {
 
 // Mua một item.
 function buyItem(itemId, quantity) {
-  const totalCost = calculateItemCost(itemId, quantity);
+  const totalCost =
+    calculateItemCost(itemId, quantity);
 
   spendMoney(totalCost);
   addItem(itemId, quantity);
+
+  // Lưu lại sau khi giao dịch hoàn tất.
+  autoSave();
 
   return {
     itemId,
@@ -62,7 +68,10 @@ function buyItem(itemId, quantity) {
 
 // Mua nhiều item trong cùng một lần.
 function buyItems(items) {
-  if (!Array.isArray(items) || items.length === 0) {
+  if (
+    !Array.isArray(items) ||
+    items.length === 0
+  ) {
     throw new Error(
       "shoppingSystem: items phải là một mảng không rỗng."
     );
@@ -71,21 +80,33 @@ function buyItems(items) {
   let totalCost = 0;
 
   for (const item of items) {
-    if (!item || typeof item !== "object") {
+    if (
+      !item ||
+      typeof item !== "object"
+    ) {
       throw new Error(
         "shoppingSystem: mỗi phần tử trong items phải là object."
       );
     }
 
-    totalCost += calculateItemCost(item.itemId, item.quantity);
+    totalCost += calculateItemCost(
+      item.itemId,
+      item.quantity
+    );
   }
 
   // Kiểm tra và trừ toàn bộ tiền trước khi thêm inventory.
   spendMoney(totalCost);
 
   for (const item of items) {
-    addItem(item.itemId, item.quantity);
+    addItem(
+      item.itemId,
+      item.quantity
+    );
   }
+
+  // Lưu lại sau khi toàn bộ giao dịch hoàn tất.
+  autoSave();
 
   return {
     items: [...items],

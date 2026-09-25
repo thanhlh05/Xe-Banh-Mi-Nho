@@ -1,3 +1,5 @@
+import { gameState } from "../game/gameState.js";
+
 import { CUSTOMERS } from "../data/customers.js";
 import { SAMPLE_ORDERS } from "../data/orders.js";
 
@@ -7,6 +9,7 @@ import {
 
 import {
   completeOrder,
+  getCurrentOrder,
 } from "./orderSystem.js";
 
 import {
@@ -34,7 +37,9 @@ import {
   clearSelectedIngredients,
 } from "./ingredientSelectionSystem.js";
 
-import { recordCustomerVisit } from "./regularCustomerSystem.js";
+import {
+  recordCustomerVisit,
+} from "./regularCustomerSystem.js";
 
 import {
   getRecipeIngredients,
@@ -49,14 +54,27 @@ import { INGREDIENTS } from "../data/ingredients.js";
 import { SHOPPING_PRICES } from "../data/shoppingPrices.js";
 import { addMoney } from "./moneySystem.js";
 
-let currentCustomer = null;
-let currentOrder = null;
-let lastSaleResult = null;
+import { autoSave } from "./autoSaveSystem.js";
+
+function ensureRuntimeGameplay() {
+  if (!gameState.runtime) {
+    gameState.runtime = {};
+  }
+
+  if (!gameState.runtime.gameplay) {
+    gameState.runtime.gameplay = {
+      currentCustomerId: null,
+      currentOrderId: null,
+      lastSaleResult: null,
+    };
+  }
+}
 
 function getCustomerById(customerId) {
-  const customer = CUSTOMERS.find(
-    (item) => item.id === customerId
-  );
+  const customer =
+    CUSTOMERS.find(
+      (item) => item.id === customerId
+    );
 
   if (!customer) {
     throw new Error(
@@ -68,9 +86,10 @@ function getCustomerById(customerId) {
 }
 
 function getOrderById(orderId) {
-  const order = SAMPLE_ORDERS.find(
-    (item) => item.id === orderId
-  );
+  const order =
+    SAMPLE_ORDERS.find(
+      (item) => item.id === orderId
+    );
 
   if (!order) {
     throw new Error(
@@ -91,26 +110,32 @@ function startCustomerVisit(orderId) {
     );
   }
 
-  if (
-    currentCustomer !== null ||
-    currentOrder !== null
-  ) {
+  ensureRuntimeGameplay();
+
+  if (hasActiveCustomer()) {
     throw new Error(
       "gameplaySystem: hiện đang có một khách hàng/order đang được xử lý."
     );
   }
 
-  const order = getOrderById(orderId);
+  const order =
+    getOrderById(orderId);
 
-  const customer = getCustomerById(
-    order.customerId
-  );
+  const customer =
+    getCustomerById(
+      order.customerId
+    );
 
   startSale(orderId);
 
-  currentCustomer = customer;
-  currentOrder = order;
-  lastSaleResult = null;
+  gameState.runtime.gameplay.currentCustomerId =
+    customer.id;
+
+  gameState.runtime.gameplay.currentOrderId =
+    order.id;
+
+  gameState.runtime.gameplay.lastSaleResult =
+    null;
 
   setRecipe(order.recipeId);
 
@@ -121,6 +146,9 @@ function startCustomerVisit(orderId) {
     order.recipeId
   );
 
+  // Lưu vị trí ngay sau khi bắt đầu xử lý khách.
+  autoSave();
+
   return {
     customer,
     order,
@@ -128,79 +156,69 @@ function startCustomerVisit(orderId) {
 }
 
 function getCurrentCustomer() {
-  return currentCustomer;
+  ensureRuntimeGameplay();
+
+  const customerId =
+    gameState.runtime.gameplay
+      .currentCustomerId;
+
+  if (!customerId) {
+    return null;
+  }
+
+  return getCustomerById(
+    customerId
+  );
 }
 
 function getCurrentGameplayOrder() {
-  return currentOrder;
+  ensureRuntimeGameplay();
+
+  const orderId =
+    gameState.runtime.gameplay
+      .currentOrderId;
+
+  if (!orderId) {
+    return null;
+  }
+
+  return getOrderById(
+    orderId
+  );
 }
 
 function hasActiveCustomer() {
   return (
-    currentCustomer !== null &&
-    currentOrder !== null
+    getCurrentCustomer() !== null &&
+    getCurrentGameplayOrder() !== null
   );
 }
 
-/*
- * Chỉ cần có khách đang được xử lý
- * thì có thể hoàn tất lượt bán.
- *
- * Không kiểm tra đủ nguyên liệu ở đây.
- *
- * Lý do:
- * Người chơi có thể chọn sai,
- * chọn thiếu hoặc kho bị thiếu nguyên liệu.
- * Những trường hợp đó vẫn phải được xử lý
- * để tính rating và tiền nhận được.
- */
 function canFinishCurrentSale() {
   return hasActiveCustomer();
 }
 
-/*
- * Tính chi phí của những nguyên liệu
- * người chơi thực sự đã chọn
- * và hiện vẫn còn trong kho.
- */
 function calculateSelectedIngredientCost(
   selectedIngredients
 ) {
   let totalCost = 0;
 
   for (const ingredientId of selectedIngredients) {
-    if (getItemQuantity(ingredientId) <= 0) {
+    if (
+      getItemQuantity(ingredientId) <=
+      0
+    ) {
       continue;
     }
 
     totalCost +=
-      SHOPPING_PRICES[ingredientId] || 0;
+      SHOPPING_PRICES[ingredientId] ||
+      0;
   }
 
   return totalCost;
 }
 
-/*
- * Tiêu thụ nguyên liệu dựa trên
- * lựa chọn thực tế của người chơi.
- *
- * Đây là nơi DUY NHẤT trong flow bán hàng
- * thực hiện việc trừ inventory.
- *
- * Ví dụ:
- *
- * Recipe:
- * bread + meat + vegetables + cucumber
- *
- * Người chơi chọn:
- * bread + meat + cha + pate + egg + vegetables + cucumber
- *
- * Nếu tất cả đều còn hàng:
- * cả 7 nguyên liệu đều bị trừ 1.
- *
- * Recipe KHÔNG quyết định nguyên liệu bị trừ.
- * Recipe chỉ dùng để đánh giá món ăn.
- */
 function consumeSelectedIngredients(
   selectedIngredients
 ) {
@@ -209,12 +227,10 @@ function consumeSelectedIngredients(
 
   for (const ingredientId of selectedIngredients) {
     const quantity =
-      getItemQuantity(ingredientId);
+      getItemQuantity(
+        ingredientId
+      );
 
-    /*
-     * Nếu nguyên liệu đã hết:
-     * không thể trừ thêm.
-     */
     if (quantity <= 0) {
       continue;
     }
@@ -229,7 +245,8 @@ function consumeSelectedIngredients(
     );
 
     ingredientCost +=
-      SHOPPING_PRICES[ingredientId] || 0;
+      SHOPPING_PRICES[ingredientId] ||
+      0;
   }
 
   return {
@@ -238,22 +255,19 @@ function consumeSelectedIngredients(
   };
 }
 
-/*
- * Kiểm tra những nguyên liệu mà recipe yêu cầu
- * nhưng hiện tại trong kho không còn.
- *
- * Hàm này CHỈ kiểm tra.
- * Không trừ inventory.
- */
 function getMissingRecipeIngredients(
   recipeId
 ) {
   const ingredients =
-    getRecipeIngredients(recipeId);
+    getRecipeIngredients(
+      recipeId
+    );
 
   return ingredients.filter(
     (ingredientId) =>
-      getItemQuantity(ingredientId) <= 0
+      getItemQuantity(
+        ingredientId
+      ) <= 0
   );
 }
 
@@ -276,30 +290,26 @@ function finishCurrentSale() {
     );
   }
 
+  ensureRuntimeGameplay();
+
   const selectedIngredients =
     getSelectedIngredients();
+
+  const currentOrder =
+    getCurrentGameplayOrder();
+
+  const currentCustomer =
+    getCurrentCustomer();
 
   const recipeId =
     currentOrder.recipeId;
 
-  /*
-   * BƯỚC 1:
-   * Đánh giá món dựa trên những gì
-   * người chơi đã chọn.
-   *
-   * Recipe chỉ được dùng để so sánh.
-   */
   const evaluatedResult =
     evaluateOrder(
       recipeId,
       selectedIngredients
     );
 
-  /*
-   * BƯỚC 2:
-   * Kiểm tra recipe có nguyên liệu nào
-   * bị thiếu trong kho hay không.
-   */
   const missingIngredients =
     getMissingRecipeIngredients(
       recipeId
@@ -308,47 +318,24 @@ function finishCurrentSale() {
   const hasMissingIngredients =
     missingIngredients.length > 0;
 
-  /*
-   * BƯỚC 3:
-   * Nếu kho thiếu nguyên liệu cần thiết,
-   * kết quả cuối cùng phải là POOR.
-   *
-   * Không khóa người chơi.
-   * Vẫn cho hoàn thành lượt bán.
-   */
-  const finalResult = hasMissingIngredients
-    ? {
-        ...evaluatedResult,
-        level: "POOR",
-      }
-    : evaluatedResult;
+  const finalResult =
+    hasMissingIngredients
+      ? {
+          ...evaluatedResult,
+          level: "POOR",
+        }
+      : evaluatedResult;
 
-  /*
-   * BƯỚC 4:
-   * Rating và payment phải được tính
-   * SAU KHI đã xác định finalResult.
-   *
-   * Điều này tránh bug:
-   * result bị đổi thành POOR
-   * nhưng payment vẫn được tính theo PERFECT/GOOD.
-   */
   const rating =
-    calculateRating(finalResult);
+    calculateRating(
+      finalResult
+    );
 
   const payment =
-    calculatePayment(finalResult);
+    calculatePayment(
+      finalResult
+    );
 
-  /*
-   * BƯỚC 5:
-   * Trừ inventory dựa hoàn toàn vào
-   * selectedIngredients.
-   *
-   * Không gọi completeSale().
-   * Không gọi makeRecipe().
-   *
-   * Vì nếu gọi chúng, nguyên liệu
-   * sẽ bị trừ thêm lần nữa.
-   */
   const consumeResult =
     consumeSelectedIngredients(
       selectedIngredients
@@ -359,22 +346,10 @@ function finishCurrentSale() {
       consumeResult.consumedIngredients
     );
 
-  /*
-   * BƯỚC 6:
-   * Order hoàn thành.
-   */
   completeOrder();
 
-  /*
-   * BƯỚC 7:
-   * Cộng đúng số tiền khách thực tế trả.
-   */
   addMoney(payment);
 
-  /*
-   * BƯỚC 8:
-   * Ghi nhận thống kê.
-   */
   recordIngredientCost(
     consumeResult.ingredientCost
   );
@@ -385,11 +360,7 @@ function finishCurrentSale() {
 
   recordRating(rating);
 
-  /*
-   * BƯỚC 9:
-   * Lưu kết quả lượt bán.
-   */
-  lastSaleResult = {
+  const saleResult = {
     success: true,
 
     orderId:
@@ -448,26 +419,52 @@ function finishCurrentSale() {
       finalResult.extraCount,
   };
 
-  /*
-   * BƯỚC 10:
-   * Reset trạng thái lượt bán.
-   */
+  gameState.runtime.gameplay.lastSaleResult =
+    saleResult;
+
   clearSelectedIngredients();
 
-  currentCustomer = null;
-  currentOrder = null;
+  gameState.runtime.gameplay.currentCustomerId =
+    null;
 
-  return lastSaleResult;
+  gameState.runtime.gameplay.currentOrderId =
+    null;
+
+  // Lưu sau khi toàn bộ kết quả bán hàng đã được cập nhật.
+  autoSave();
+
+  return saleResult;
 }
 
 function getLastSaleResult() {
-  return lastSaleResult;
+  ensureRuntimeGameplay();
+
+  return (
+    gameState.runtime.gameplay
+      .lastSaleResult
+  );
+}
+
+function clearLastSaleResult() {
+  ensureRuntimeGameplay();
+
+  gameState.runtime.gameplay.lastSaleResult =
+    null;
+
+  autoSave();
 }
 
 function resetGameplay() {
-  currentCustomer = null;
-  currentOrder = null;
-  lastSaleResult = null;
+  ensureRuntimeGameplay();
+
+  gameState.runtime.gameplay.currentCustomerId =
+    null;
+
+  gameState.runtime.gameplay.currentOrderId =
+    null;
+
+  gameState.runtime.gameplay.lastSaleResult =
+    null;
 }
 
 export {
@@ -478,5 +475,6 @@ export {
   canFinishCurrentSale,
   finishCurrentSale,
   getLastSaleResult,
+  clearLastSaleResult,
   resetGameplay,
 };

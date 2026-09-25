@@ -1,12 +1,3 @@
-// src/systems/dayFlowSystem.js
-//
-// File này điều phối vòng đời của một ngày trong game.
-//
-// Flow:
-// PREPARATION → PLAYING → DAY_ENDED → SUMMARY
-//
-// File này KHÔNG xử lý UI, DOM hoặc LocalStorage.
-
 import {
   getCurrentTime,
   resetDayTime,
@@ -31,6 +22,12 @@ import {
   getDaySummary,
 } from "./daySummarySystem.js";
 
+import {
+  autoSave,
+} from "./autoSaveSystem.js";
+
+import { gameState } from "../game/gameState.js";
+
 const DAY_FLOW_STATES = {
   PREPARATION: "PREPARATION",
   PLAYING: "PLAYING",
@@ -38,42 +35,81 @@ const DAY_FLOW_STATES = {
   SUMMARY: "SUMMARY",
 };
 
-let currentState = DAY_FLOW_STATES.PREPARATION;
+function ensureRuntime() {
+  if (!gameState.runtime) {
+    gameState.runtime = {};
+  }
 
-// Trả về trạng thái hiện tại.
-function getDayFlowState() {
-  return currentState;
+  if (
+    typeof gameState.runtime.dayFlowState !==
+    "string"
+  ) {
+    gameState.runtime.dayFlowState =
+      DAY_FLOW_STATES.PREPARATION;
+  }
 }
 
-// Bắt đầu một ngày mới từ trạng thái Preparation.
-function startDay() {
-  if (currentState !== DAY_FLOW_STATES.PREPARATION) {
+function getDayFlowState() {
+  ensureRuntime();
+
+  return gameState.runtime.dayFlowState;
+}
+
+function setDayFlowState(state) {
+  ensureRuntime();
+
+  const isValidState =
+    Object.values(DAY_FLOW_STATES).includes(
+      state
+    );
+
+  if (!isValidState) {
     throw new Error(
-      `dayFlowSystem: không thể bắt đầu ngày mới khi trạng thái hiện tại là "${currentState}".`
+      `dayFlowSystem: state "${state}" không hợp lệ.`
+    );
+  }
+
+  gameState.runtime.dayFlowState =
+    state;
+}
+
+function startDay() {
+  if (
+    getDayFlowState() !==
+    DAY_FLOW_STATES.PREPARATION
+  ) {
+    throw new Error(
+      `dayFlowSystem: không thể bắt đầu ngày mới khi trạng thái hiện tại là "${getDayFlowState()}".`
     );
   }
 
   resetDayTime();
+
   startDayStatistics();
 
-  currentState = DAY_FLOW_STATES.PLAYING;
+  setDayFlowState(
+    DAY_FLOW_STATES.PLAYING
+  );
 
   return {
     day: getCurrentDay(),
     time: getCurrentTime(),
-    state: currentState,
+    state: getDayFlowState(),
   };
 }
 
-// Tăng thời gian trong ngày.
 function advanceDayTime(minutes) {
-  if (currentState !== DAY_FLOW_STATES.PLAYING) {
+  if (
+    getDayFlowState() !==
+    DAY_FLOW_STATES.PLAYING
+  ) {
     throw new Error(
-      `dayFlowSystem: không thể tăng thời gian khi trạng thái hiện tại là "${currentState}".`
+      `dayFlowSystem: không thể tăng thời gian khi trạng thái hiện tại là "${getDayFlowState()}".`
     );
   }
 
-  const newTime = advanceTime(minutes);
+  const newTime =
+    advanceTime(minutes);
 
   if (isDayEnded()) {
     endDay();
@@ -82,39 +118,72 @@ function advanceDayTime(minutes) {
   return newTime;
 }
 
-// Kết thúc ngày hiện tại.
 function endDay() {
-  if (currentState !== DAY_FLOW_STATES.PLAYING) {
+  if (
+    getDayFlowState() !==
+    DAY_FLOW_STATES.PLAYING
+  ) {
     throw new Error(
-      `dayFlowSystem: không thể kết thúc ngày khi trạng thái hiện tại là "${currentState}".`
+      `dayFlowSystem: không thể kết thúc ngày khi trạng thái hiện tại là "${getDayFlowState()}".`
     );
   }
 
   discardFreshIngredients();
 
-  currentState = DAY_FLOW_STATES.DAY_ENDED;
+  setDayFlowState(
+    DAY_FLOW_STATES.DAY_ENDED
+  );
+
+  /*
+   * Auto Save ngay khi ngày kết thúc.
+   *
+   * Lúc này:
+   * - thời gian đã là 22:00
+   * - nguyên liệu tươi đã được bỏ đi
+   * - dayFlowState = DAY_ENDED
+   * - dayStatistics đã được cập nhật
+   *
+   * Vì vậy người chơi có thể F5
+   * mà không mất tiến trình của ngày vừa chơi.
+   */
+  autoSave();
 
   return getDaySummary();
 }
 
-// Chuyển sang trạng thái Summary.
 function openDaySummary() {
-  if (currentState !== DAY_FLOW_STATES.DAY_ENDED) {
+  if (
+    getDayFlowState() !==
+    DAY_FLOW_STATES.DAY_ENDED
+  ) {
     throw new Error(
-      `dayFlowSystem: không thể mở summary khi trạng thái hiện tại là "${currentState}".`
+      `dayFlowSystem: không thể mở summary khi trạng thái hiện tại là "${getDayFlowState()}".`
     );
   }
 
-  currentState = DAY_FLOW_STATES.SUMMARY;
+  setDayFlowState(
+    DAY_FLOW_STATES.SUMMARY
+  );
+
+  /*
+   * Auto Save sau khi chuyển sang
+   * màn hình SUMMARY.
+   *
+   * Điều này giúp LocalStorage phản ánh
+   * chính xác vị trí hiện tại của người chơi.
+   */
+  autoSave();
 
   return getDaySummary();
 }
 
-// Chuẩn bị cho ngày tiếp theo.
 function prepareNextDay() {
-  if (currentState !== DAY_FLOW_STATES.SUMMARY) {
+  if (
+    getDayFlowState() !==
+    DAY_FLOW_STATES.SUMMARY
+  ) {
     throw new Error(
-      `dayFlowSystem: không thể chuẩn bị ngày tiếp theo khi trạng thái hiện tại là "${currentState}".`
+      `dayFlowSystem: không thể chuẩn bị ngày tiếp theo khi trạng thái hiện tại là "${getDayFlowState()}".`
     );
   }
 
@@ -122,12 +191,27 @@ function prepareNextDay() {
 
   resetDayTime();
 
-  currentState = DAY_FLOW_STATES.PREPARATION;
+  setDayFlowState(
+    DAY_FLOW_STATES.PREPARATION
+  );
+
+  /*
+   * Auto Save NGAY LẬP TỨC khi chuyển
+   * sang ngày mới.
+   *
+   * Người chơi chưa cần hoàn thành
+   * Preparation vẫn được lưu:
+   *
+   * day = ngày mới
+   * time = 06:00
+   * state = PREPARATION
+   */
+  autoSave();
 
   return {
     day: getCurrentDay(),
     time: getCurrentTime(),
-    state: currentState,
+    state: getDayFlowState(),
   };
 }
 

@@ -1,96 +1,129 @@
-// src/systems/timeSystem.js
-//
-// File này quản lý thời gian trong một ngày bán hàng (06:00 - 22:00).
-// Thời gian được lưu trong biến module-level, chưa liên quan đến
-// gameState, UI, hay timer tự động (setInterval/setTimeout).
+import { gameState } from "../game/gameState.js";
 
-// Giờ bắt đầu và kết thúc của một ngày bán hàng.
 const DAY_START_HOUR = 6;
 const DAY_END_HOUR = 22;
 
-// Biến lưu thời gian hiện tại. Mặc định bắt đầu lúc 06:00.
-let currentHour = DAY_START_HOUR;
-let currentMinute = 0;
+function ensureRuntimeTime() {
+  if (!gameState.runtime) {
+    gameState.runtime = {};
+  }
 
-// 1. Trả về thời gian hiện tại dưới dạng { hour, minute }.
+  if (!gameState.runtime.time) {
+    gameState.runtime.time = {
+      hour: DAY_START_HOUR,
+      minute: 0,
+    };
+  }
+}
+
 function getCurrentTime() {
+  ensureRuntimeTime();
+
   return {
-    hour: currentHour,
-    minute: currentMinute,
+    hour: gameState.runtime.time.hour,
+    minute: gameState.runtime.time.minute,
   };
 }
 
-// 2. Cập nhật thời gian hiện tại thành một giờ/phút cụ thể.
-function setCurrentTime(hour, minute) {
-  const isValidHour = Number.isInteger(hour) && hour >= 0 && hour <= 23;
-  const isValidMinute = Number.isInteger(minute) && minute >= 0 && minute <= 59;
-
-  if (!isValidHour) {
+function validateTime(hour, minute) {
+  if (
+    !Number.isInteger(hour) ||
+    hour < 0 ||
+    hour > 23
+  ) {
     throw new Error(
       `timeSystem: hour phải là số nguyên từ 0 đến 23, nhận được "${hour}".`
     );
   }
 
-  if (!isValidMinute) {
+  if (
+    !Number.isInteger(minute) ||
+    minute < 0 ||
+    minute > 59
+  ) {
     throw new Error(
       `timeSystem: minute phải là số nguyên từ 0 đến 59, nhận được "${minute}".`
     );
   }
-
-  currentHour = hour;
-  currentMinute = minute;
 }
 
-// 3. Tăng thời gian hiện tại thêm một số phút.
-// Nếu vượt quá 22:00 thì giữ ở đúng 22:00.
-function advanceTime(minutes) {
-  const isPositiveInteger = Number.isInteger(minutes) && minutes > 0;
+function setCurrentTime(hour, minute) {
+  validateTime(hour, minute);
 
-  if (!isPositiveInteger) {
+  ensureRuntimeTime();
+
+  gameState.runtime.time.hour = hour;
+  gameState.runtime.time.minute = minute;
+
+  return getCurrentTime();
+}
+
+function advanceTime(minutes) {
+  if (
+    !Number.isInteger(minutes) ||
+    minutes <= 0
+  ) {
     throw new Error(
       `timeSystem: minutes phải là số nguyên dương, nhận được "${minutes}".`
     );
   }
 
-  // Đổi thời gian hiện tại và thời gian kết thúc ngày sang tổng số phút
-  // (tính từ 00:00) để dễ so sánh và cộng dồn.
-  const currentTotalMinutes = currentHour * 60 + currentMinute;
-  const dayEndTotalMinutes = DAY_END_HOUR * 60;
+  const currentTime = getCurrentTime();
 
-  let newTotalMinutes = currentTotalMinutes + minutes;
+  const currentTotalMinutes =
+    currentTime.hour * 60 +
+    currentTime.minute;
 
-  // Không cho thời gian vượt quá 22:00.
-  if (newTotalMinutes > dayEndTotalMinutes) {
-    newTotalMinutes = dayEndTotalMinutes;
+  const dayEndTotalMinutes =
+    DAY_END_HOUR * 60;
+
+  let newTotalMinutes =
+    currentTotalMinutes + minutes;
+
+  if (
+    newTotalMinutes >
+    dayEndTotalMinutes
+  ) {
+    newTotalMinutes =
+      dayEndTotalMinutes;
   }
 
-  currentHour = Math.floor(newTotalMinutes / 60);
-  currentMinute = newTotalMinutes % 60;
+  const newHour =
+    Math.floor(newTotalMinutes / 60);
 
-  return {
-    hour: currentHour,
-    minute: currentMinute,
-  };
+  const newMinute =
+    newTotalMinutes % 60;
+
+  return setCurrentTime(
+    newHour,
+    newMinute
+  );
 }
 
-// 4. Kiểm tra xem ngày đã kết thúc chưa (thời gian hiện tại >= 22:00).
 function isDayEnded() {
-  const currentTotalMinutes = currentHour * 60 + currentMinute;
-  const dayEndTotalMinutes = DAY_END_HOUR * 60;
+  const currentTime =
+    getCurrentTime();
 
-  return currentTotalMinutes >= dayEndTotalMinutes;
+  return (
+    currentTime.hour * 60 +
+      currentTime.minute >=
+    DAY_END_HOUR * 60
+  );
 }
 
-// 5. Đặt lại thời gian về đầu ngày (06:00).
 function resetDayTime() {
-  currentHour = DAY_START_HOUR;
-  currentMinute = 0;
-
-  return {
-    hour: currentHour,
-    minute: currentMinute,
-  };
+  return setCurrentTime(
+    DAY_START_HOUR,
+    0
+  );
 }
 
-// Export để các file khác sử dụng.
-export { getCurrentTime, setCurrentTime, advanceTime, isDayEnded, resetDayTime };
+export {
+  DAY_START_HOUR,
+  DAY_END_HOUR,
+  getCurrentTime,
+  setCurrentTime,
+  advanceTime,
+  isDayEnded,
+  resetDayTime,
+};

@@ -1,15 +1,57 @@
 import { SAMPLE_ORDERS } from "../data/orders.js";
-import { getDayFlowState, DAY_FLOW_STATES } from "./dayFlowSystem.js";
 
-let customerQueue = [];
-let currentQueueIndex = -1;
+import {
+  getDayFlowState,
+  DAY_FLOW_STATES,
+} from "./dayFlowSystem.js";
+
+import { gameState } from "../game/gameState.js";
+
+function ensureRuntimeQueue() {
+  if (!gameState.runtime) {
+    gameState.runtime = {};
+  }
+
+  if (!gameState.runtime.customerQueue) {
+    gameState.runtime.customerQueue = {
+      day: gameState.day.current,
+      orders: [],
+      currentIndex: -1,
+    };
+  }
+
+  if (
+    !Number.isInteger(
+      gameState.runtime.customerQueue.day
+    )
+  ) {
+    gameState.runtime.customerQueue.day =
+      gameState.day.current;
+  }
+
+  if (
+    !Array.isArray(
+      gameState.runtime.customerQueue.orders
+    )
+  ) {
+    gameState.runtime.customerQueue.orders = [];
+  }
+
+  if (
+    !Number.isInteger(
+      gameState.runtime.customerQueue.currentIndex
+    )
+  ) {
+    gameState.runtime.customerQueue.currentIndex = -1;
+  }
+}
 
 function validateOrderId(orderId) {
-  const orderExists = SAMPLE_ORDERS.some(
+  const foundOrder = SAMPLE_ORDERS.find(
     (order) => order.id === orderId
   );
 
-  if (!orderExists) {
+  if (!foundOrder) {
     throw new Error(
       `customerQueueSystem: orderId "${orderId}" không tồn tại trong SAMPLE_ORDERS.`
     );
@@ -17,13 +59,19 @@ function validateOrderId(orderId) {
 }
 
 function createQueue(orderIds) {
-  if (getDayFlowState() !== DAY_FLOW_STATES.PLAYING) {
+  if (
+    getDayFlowState() !==
+    DAY_FLOW_STATES.PLAYING
+  ) {
     throw new Error(
-      `customerQueueSystem: không thể tạo hàng đợi khi trạng thái hiện tại là "${getDayFlowState()}".`
+      `customerQueueSystem: không thể tạo queue khi trạng thái hiện tại là "${getDayFlowState()}".`
     );
   }
 
-  if (!Array.isArray(orderIds) || orderIds.length === 0) {
+  if (
+    !Array.isArray(orderIds) ||
+    orderIds.length === 0
+  ) {
     throw new Error(
       "customerQueueSystem: orderIds phải là một mảng không rỗng."
     );
@@ -33,26 +81,47 @@ function createQueue(orderIds) {
     validateOrderId(orderId);
   }
 
-  customerQueue = [...orderIds];
-  currentQueueIndex = -1;
+  ensureRuntimeQueue();
+
+  gameState.runtime.customerQueue.day =
+    gameState.day.current;
+
+  gameState.runtime.customerQueue.orders = [
+    ...orderIds,
+  ];
+
+  gameState.runtime.customerQueue.currentIndex =
+    -1;
 
   return getQueue();
 }
 
 function getQueue() {
-  return [...customerQueue];
+  ensureRuntimeQueue();
+
+  return [
+    ...gameState.runtime.customerQueue.orders,
+  ];
 }
 
 function getQueueLength() {
-  return customerQueue.length;
+  return getQueue().length;
 }
 
 function getCurrentQueueIndex() {
-  return currentQueueIndex;
+  ensureRuntimeQueue();
+
+  return gameState.runtime.customerQueue
+    .currentIndex;
 }
 
 function hasWaitingCustomer() {
-  return currentQueueIndex + 1 < customerQueue.length;
+  ensureRuntimeQueue();
+
+  return (
+    getCurrentQueueIndex() + 1 <
+    getQueueLength()
+  );
 }
 
 function getNextOrderId() {
@@ -60,7 +129,10 @@ function getNextOrderId() {
     return null;
   }
 
-  return customerQueue[currentQueueIndex + 1];
+  const nextIndex =
+    getCurrentQueueIndex() + 1;
+
+  return getQueue()[nextIndex];
 }
 
 function moveToNextCustomer() {
@@ -68,40 +140,80 @@ function moveToNextCustomer() {
     return null;
   }
 
-  currentQueueIndex += 1;
+  ensureRuntimeQueue();
 
-  return customerQueue[currentQueueIndex];
+  gameState.runtime.customerQueue.currentIndex +=
+    1;
+
+  return getCurrentOrderId();
 }
 
 function getCurrentOrderId() {
-  if (currentQueueIndex < 0) {
+  ensureRuntimeQueue();
+
+  const currentIndex =
+    getCurrentQueueIndex();
+
+  if (currentIndex < 0) {
     return null;
   }
 
-  return customerQueue[currentQueueIndex] || null;
+  return getQueue()[currentIndex] || null;
 }
 
 function isQueueFinished() {
+  const queueLength =
+    getQueueLength();
+
+  if (queueLength === 0) {
+    return false;
+  }
+
   return (
-    customerQueue.length > 0 &&
-    currentQueueIndex >= customerQueue.length - 1
+    getCurrentQueueIndex() >=
+    queueLength - 1
   );
 }
 
 function clearQueue() {
-  customerQueue = [];
-  currentQueueIndex = -1;
+  ensureRuntimeQueue();
+
+  gameState.runtime.customerQueue.orders =
+    [];
+
+  gameState.runtime.customerQueue.currentIndex =
+    -1;
+
+  gameState.runtime.customerQueue.day =
+    gameState.day.current;
 }
 
 function getQueueStatus() {
+  ensureRuntimeQueue();
+
   return {
-    queue: [...customerQueue],
-    totalCustomers: customerQueue.length,
-    currentIndex: currentQueueIndex,
-    currentOrderId: getCurrentOrderId(),
-    nextOrderId: getNextOrderId(),
-    hasWaitingCustomer: hasWaitingCustomer(),
-    finished: isQueueFinished(),
+    day:
+      gameState.runtime.customerQueue.day,
+
+    queue: getQueue(),
+
+    totalCustomers:
+      getQueueLength(),
+
+    currentIndex:
+      getCurrentQueueIndex(),
+
+    currentOrderId:
+      getCurrentOrderId(),
+
+    nextOrderId:
+      getNextOrderId(),
+
+    hasWaitingCustomer:
+      hasWaitingCustomer(),
+
+    finished:
+      isQueueFinished(),
   };
 }
 
