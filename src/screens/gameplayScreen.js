@@ -15,7 +15,6 @@ import {
 import {
   createQueue,
   getQueueLength,
-  getCurrentQueueIndex,
 } from "../systems/customerQueueSystem.js";
 
 import {
@@ -31,6 +30,11 @@ import {
   getSpawnedOrders,
   resetSpawnSystem,
 } from "../systems/customerSpawnSystem.js";
+
+import {
+  getCustomerHint,
+  getAllRegularCustomers,
+} from "../systems/regularCustomerSystem.js";
 
 import { RECIPES } from "../data/recipes.js";
 
@@ -137,6 +141,14 @@ function renderGameplayScreen() {
         <section class="gameplay-actions">
 
           <button
+            id="regular-customers-button"
+            type="button"
+            class="game-button secondary-button"
+          >
+            📖 SỔ KHÁCH QUEN
+          </button>
+
+          <button
             id="advance-time-button"
             type="button"
             class="game-button secondary-button"
@@ -144,6 +156,14 @@ function renderGameplayScreen() {
             ⏩ Thời gian +30 phút
           </button>
 
+        </section>
+
+        <section
+          id="regular-customers-area"
+          class="regular-customers-area"
+          hidden
+        >
+          ${renderRegularCustomersBook()}
         </section>
 
       </section>
@@ -160,6 +180,8 @@ function renderCustomerArea() {
     const order = getCurrentGameplayOrder();
     const recipe = RECIPES[order.recipeId];
 
+    const customerHint = getCustomerHint(customer.id);
+
     return `
       <div class="customer-card active-customer">
 
@@ -170,6 +192,35 @@ function renderCustomerArea() {
         <p class="customer-type">
           ${customer.type}
         </p>
+
+        ${
+          customerHint
+            ? `
+              <div class="regular-customer-hint">
+
+                <strong>⭐ KHÁCH QUEN</strong>
+
+                <span>
+                  Đã ghé: ${customerHint.visitCount} lần
+                </span>
+
+                <span>
+                  Món thường gọi:
+                  ${
+                    RECIPES[customerHint.usualOrder]
+                      ? RECIPES[customerHint.usualOrder].name
+                      : customerHint.usualOrder
+                  }
+                </span>
+
+                <p>
+                  💬 ${customerHint.message}
+                </p>
+
+              </div>
+            `
+            : ""
+        }
 
         <div class="customer-order">
           <span>Khách gọi:</span>
@@ -272,6 +323,115 @@ function renderCustomerProgress() {
   `;
 }
 
+function renderRegularCustomersBook() {
+  const regularCustomers = getAllRegularCustomers();
+
+  if (regularCustomers.length === 0) {
+    return `
+      <div class="regular-customers-card">
+
+        <h2>📖 Sổ khách quen</h2>
+
+        <p>
+          Chưa có khách nào được ghi vào sổ.
+        </p>
+
+      </div>
+    `;
+  }
+
+  const customerHTML = regularCustomers
+    .map((customer) => {
+      const recipe = RECIPES[customer.usualOrder];
+
+      return `
+        <div class="regular-customer-item">
+
+          <div class="regular-customer-name">
+            👤 ${customer.name}
+          </div>
+
+          <div>
+            Đã ghé:
+            <strong>${customer.visitCount} lần</strong>
+          </div>
+
+          <div>
+            Món thường gọi:
+            <strong>
+              ${recipe ? recipe.name : customer.usualOrder}
+            </strong>
+          </div>
+
+          ${
+            customer.notes
+              ? `
+                <div class="regular-customer-note">
+                  📝 ${customer.notes}
+                </div>
+              `
+              : ""
+          }
+
+        </div>
+      `;
+    })
+    .join("");
+
+  return `
+    <div class="regular-customers-card">
+
+      <h2>📖 Sổ khách quen</h2>
+
+      <div class="regular-customers-list">
+        ${customerHTML}
+      </div>
+
+    </div>
+  `;
+}
+
+function refreshRegularCustomersBook() {
+  const area = document.querySelector(
+    "#regular-customers-area"
+  );
+
+  if (!area) {
+    return;
+  }
+
+  area.innerHTML = renderRegularCustomersBook();
+}
+
+function bindRegularCustomersButton() {
+  const button = document.querySelector(
+    "#regular-customers-button"
+  );
+
+  const area = document.querySelector(
+    "#regular-customers-area"
+  );
+
+  if (!button || !area) {
+    return;
+  }
+
+  button.addEventListener("click", () => {
+    const isHidden = area.hidden;
+
+    area.hidden = !isHidden;
+
+    if (!isHidden) {
+      button.textContent = "📖 SỔ KHÁCH QUEN";
+      return;
+    }
+
+    refreshRegularCustomersBook();
+
+    button.textContent = "📕 ĐÓNG SỔ KHÁCH QUEN";
+  });
+}
+
 function refreshGameplay() {
   trySpawnCustomer();
 
@@ -362,6 +522,7 @@ function bindGameplayEvents() {
     });
   }
 
+  bindRegularCustomersButton();
   bindCustomerButton();
 }
 

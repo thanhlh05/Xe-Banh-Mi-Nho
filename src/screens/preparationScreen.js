@@ -45,12 +45,42 @@ function getItemDisplayName(itemId) {
   return INGREDIENTS[itemId]?.name || itemId;
 }
 
+/*
+ * Xác định nhóm của nguyên liệu.
+ *
+ * fresh:
+ * - nguyên liệu tươi
+ * - sử dụng trong ngày
+ * - nút + / - thay đổi 5 đơn vị
+ *
+ * consumable:
+ * - gia vị / nguyên liệu dùng dài hạn
+ * - nút + / - thay đổi 1 đơn vị
+ */
+function getItemCategory(itemId) {
+  return INGREDIENTS[itemId]?.category || "";
+}
+
+function getQuantityStep(itemId) {
+  console.log(
+    "ITEM:",
+    itemId,
+    "CATEGORY:",
+    getItemCategory(itemId)
+  );
+
+  return 5;
+}
+
 function calculateShoppingTotal() {
   let total = 0;
 
   for (const itemId of SHOPPING_ITEMS) {
     const quantity = shoppingCart[itemId] || 0;
-    total += SHOPPING_PRICES[itemId] * quantity;
+
+    total +=
+      SHOPPING_PRICES[itemId] *
+      quantity;
   }
 
   return total;
@@ -66,13 +96,22 @@ function renderInventoryItem(name, quantity) {
 }
 
 function renderShoppingItem(itemId) {
-  const quantity = shoppingCart[itemId] || 0;
-  const price = SHOPPING_PRICES[itemId];
+  const quantity =
+    shoppingCart[itemId] || 0;
+
+  const price =
+    SHOPPING_PRICES[itemId];
+
+  const step =
+    getQuantityStep(itemId);
 
   return `
     <div class="shopping-item">
+
       <div class="shopping-item-info">
-        <strong>${getItemDisplayName(itemId)}</strong>
+        <strong>
+          ${getItemDisplayName(itemId)}
+        </strong>
 
         <span>
           Có: ${getItemQuantity(itemId)}
@@ -91,9 +130,17 @@ function renderShoppingItem(itemId) {
           −
         </button>
 
-        <span class="quantity-value">
-          ${quantity}
-        </span>
+        <input
+          type="number"
+          class="quantity-input"
+          data-action="input"
+          data-item-id="${itemId}"
+          min="0"
+          step="1"
+          inputmode="numeric"
+          value="${quantity}"
+          aria-label="Số lượng ${getItemDisplayName(itemId)} muốn mua"
+        />
 
         <button
           type="button"
@@ -105,20 +152,84 @@ function renderShoppingItem(itemId) {
         </button>
 
       </div>
+
+      <div class="shopping-item-total">
+        Thành tiền:
+        <strong>
+          ${formatMoney(price * quantity)}
+        </strong>
+      </div>
+
+      <div class="shopping-item-step">
+        ${step === 5
+          ? "Mỗi lần ±: 5"
+          : "Mỗi lần ±: 1"}
+      </div>
+
     </div>
   `;
 }
 
-function renderShoppingItems() {
-  return SHOPPING_ITEMS
-    .map((itemId) => renderShoppingItem(itemId))
-    .join("");
+function renderShoppingGroup(
+  title,
+  itemIds
+) {
+  if (itemIds.length === 0) {
+    return "";
+  }
+
+  return `
+    <section class="shopping-group">
+
+      <h3>${title}</h3>
+
+      <div class="shopping-group-items">
+        ${itemIds
+          .map((itemId) =>
+            renderShoppingItem(itemId)
+          )
+          .join("")}
+      </div>
+
+    </section>
+  `;
 }
 
-function renderPreparationScreen(onDayStart) {
+function renderShoppingItems() {
+  const freshItems =
+    SHOPPING_ITEMS.filter(
+      (itemId) =>
+        getItemCategory(itemId) ===
+        "fresh"
+    );
+
+  const consumableItems =
+    SHOPPING_ITEMS.filter(
+      (itemId) =>
+        getItemCategory(itemId) ===
+        "consumable"
+    );
+
+  return `
+    ${renderShoppingGroup(
+      "🥬 Nguyên liệu tươi - dùng trong ngày",
+      freshItems
+    )}
+
+    ${renderShoppingGroup(
+      "🥫 Gia vị - dùng dài hạn",
+      consumableItems
+    )}
+  `;
+}
+
+function renderPreparationScreen(
+  onDayStart
+) {
   resetShoppingCart();
 
-  const status = getPreparationStatus();
+  const status =
+    getPreparationStatus();
 
   renderHTML(`
     <main class="screen preparation-screen">
@@ -126,32 +237,45 @@ function renderPreparationScreen(onDayStart) {
       <section class="game-card preparation-card">
 
         <div class="screen-header">
-          <div class="screen-icon">🧑‍🍳</div>
 
-          <h1>Chuẩn bị bán hàng</h1>
+          <div class="screen-icon">
+            🧑‍🍳
+          </div>
+
+          <h1>
+            Chuẩn bị bán hàng
+          </h1>
 
           <p>
             ${gameState.shop.name || "Xe bánh mì"}
           </p>
+
         </div>
 
         <div class="preparation-info">
 
           <div>
             <span>Ngày</span>
-            <strong>${getCurrentDay()}</strong>
+            <strong>
+              ${getCurrentDay()}
+            </strong>
           </div>
 
           <div>
             <span>Số tiền</span>
-            <strong id="preparation-money">
+
+            <strong
+              id="preparation-money"
+            >
               ${formatMoney(status.money)}
             </strong>
           </div>
 
         </div>
 
-        <h2>Nguyên liệu hiện có</h2>
+        <h2>
+          Nguyên liệu hiện có
+        </h2>
 
         <div class="preparation-inventory">
 
@@ -192,10 +316,13 @@ function renderPreparationScreen(onDayStart) {
 
         </div>
 
-        <h2>🛒 Mua thêm nguyên liệu</h2>
+        <h2>
+          🛒 Nhập nguyên liệu
+        </h2>
 
         <p class="preparation-shopping-description">
-          Bạn có thể mua thêm nguyên liệu trước khi bắt đầu ngày.
+          Nguyên liệu tươi dùng trong ngày.
+          Gia vị có thể sử dụng cho nhiều ngày.
         </p>
 
         <div
@@ -209,7 +336,10 @@ function renderPreparationScreen(onDayStart) {
 
           <div>
             Tổng tiền mua:
-            <strong id="preparation-shopping-total">
+
+            <strong
+              id="preparation-shopping-total"
+            >
               ${formatMoney(0)}
             </strong>
           </div>
@@ -243,22 +373,29 @@ function renderPreparationScreen(onDayStart) {
     </main>
   `);
 
-  bindPreparationEvents(onDayStart);
+  bindPreparationEvents(
+    onDayStart
+  );
+
   updatePreparationShoppingSummary();
 }
 
 function updatePreparationShoppingSummary() {
-  const totalElement = document.querySelector(
-    "#preparation-shopping-total"
-  );
+  const totalElement =
+    document.querySelector(
+      "#preparation-shopping-total"
+    );
 
-  const moneyElement = document.querySelector(
-    "#preparation-money"
-  );
+  const moneyElement =
+    document.querySelector(
+      "#preparation-money"
+    );
 
   if (totalElement) {
     totalElement.textContent =
-      formatMoney(calculateShoppingTotal());
+      formatMoney(
+        calculateShoppingTotal()
+      );
   }
 
   if (moneyElement) {
@@ -267,35 +404,98 @@ function updatePreparationShoppingSummary() {
   }
 }
 
-function updatePreparationShoppingItem(itemId) {
-  const increaseButton = document.querySelector(
-    `[data-action="increase"][data-item-id="${itemId}"]`
-  );
+function updatePreparationShoppingItem(
+  itemId
+) {
+  const increaseButton =
+    document.querySelector(
+      `[data-action="increase"][data-item-id="${itemId}"]`
+    );
 
   if (!increaseButton) {
     return;
   }
 
   const itemContainer =
-    increaseButton.closest(".shopping-item");
+    increaseButton.closest(
+      ".shopping-item"
+    );
 
   if (!itemContainer) {
     return;
   }
 
-  const quantityElement =
-    itemContainer.querySelector(".quantity-value");
+  const quantityInput =
+    itemContainer.querySelector(
+      ".quantity-input"
+    );
 
-  if (quantityElement) {
-    quantityElement.textContent =
-      shoppingCart[itemId] || 0;
+  const totalElement =
+    itemContainer.querySelector(
+      ".shopping-item-total strong"
+    );
+
+  const quantity =
+    shoppingCart[itemId] || 0;
+
+  if (quantityInput) {
+    quantityInput.value =
+      quantity;
+  }
+
+  if (totalElement) {
+    const price =
+      SHOPPING_PRICES[itemId];
+
+    totalElement.textContent =
+      formatMoney(
+        price * quantity
+      );
   }
 }
 
-function bindPreparationShoppingEvents() {
-  const shoppingContainer = document.querySelector(
-    "#preparation-shopping-items"
+function setShoppingQuantity(
+  itemId,
+  quantity
+) {
+  if (
+    !SHOPPING_ITEMS.includes(
+      itemId
+    )
+  ) {
+    return;
+  }
+
+  /*
+   * Chỉ chấp nhận số nguyên.
+   */
+  if (!Number.isInteger(quantity)) {
+    quantity = 0;
+  }
+
+  /*
+   * Không cho phép số âm.
+   */
+  quantity = Math.max(
+    0,
+    quantity
   );
+
+  shoppingCart[itemId] =
+    quantity;
+
+  updatePreparationShoppingItem(
+    itemId
+  );
+
+  updatePreparationShoppingSummary();
+}
+
+function bindPreparationShoppingEvents() {
+  const shoppingContainer =
+    document.querySelector(
+      "#preparation-shopping-items"
+    );
 
   if (!shoppingContainer) {
     throw new Error(
@@ -306,50 +506,182 @@ function bindPreparationShoppingEvents() {
   shoppingContainer.addEventListener(
     "click",
     (event) => {
-      const button = event.target.closest(
-        "[data-action][data-item-id]"
-      );
+      const button =
+        event.target.closest(
+          "[data-action][data-item-id]"
+        );
 
       if (!button) {
         return;
       }
 
-      const itemId = button.dataset.itemId;
-      const action = button.dataset.action;
+      const itemId =
+        button.dataset.itemId;
 
-      if (!SHOPPING_ITEMS.includes(itemId)) {
+      const action =
+        button.dataset.action;
+
+      if (
+        !SHOPPING_ITEMS.includes(
+          itemId
+        )
+      ) {
         return;
       }
 
-      if (action === "increase") {
-        shoppingCart[itemId] += 1;
+      const step =
+        getQuantityStep(itemId);
+
+      if (
+        action === "increase"
+      ) {
+        shoppingCart[itemId] +=
+          step;
       }
 
-      if (action === "decrease") {
-        shoppingCart[itemId] = Math.max(
-          0,
-          shoppingCart[itemId] - 1
-        );
+      if (
+        action === "decrease"
+      ) {
+        shoppingCart[itemId] =
+          Math.max(
+            0,
+            shoppingCart[itemId] -
+              step
+          );
       }
 
-      updatePreparationShoppingItem(itemId);
+      updatePreparationShoppingItem(
+        itemId
+      );
+
       updatePreparationShoppingSummary();
+    }
+  );
+
+  shoppingContainer.addEventListener(
+    "input",
+    (event) => {
+      const input =
+        event.target.closest(
+          '[data-action="input"][data-item-id]'
+        );
+
+      if (!input) {
+        return;
+      }
+
+      const itemId =
+        input.dataset.itemId;
+
+      if (
+        !SHOPPING_ITEMS.includes(
+          itemId
+        )
+      ) {
+        return;
+      }
+
+      /*
+       * Cho phép ô nhập tạm thời rỗng
+       * trong lúc người chơi đang sửa số.
+       *
+       * Giá trị rỗng sẽ được xử lý
+       * thành 0 khi mất focus.
+       */
+      if (input.value === "") {
+        shoppingCart[itemId] = 0;
+
+        updatePreparationShoppingSummary();
+
+        return;
+      }
+
+      const parsedValue =
+        Number(input.value);
+
+      if (
+        !Number.isInteger(
+          parsedValue
+        ) ||
+        parsedValue < 0
+      ) {
+        input.value =
+          shoppingCart[itemId];
+
+        return;
+      }
+
+      shoppingCart[itemId] =
+        parsedValue;
+
+      updatePreparationShoppingItem(
+        itemId
+      );
+
+      updatePreparationShoppingSummary();
+    }
+  );
+
+  shoppingContainer.addEventListener(
+    "change",
+    (event) => {
+      const input =
+        event.target.closest(
+          '[data-action="input"][data-item-id]'
+        );
+
+      if (!input) {
+        return;
+      }
+
+      const itemId =
+        input.dataset.itemId;
+
+      if (
+        !SHOPPING_ITEMS.includes(
+          itemId
+        )
+      ) {
+        return;
+      }
+
+      let parsedValue =
+        Number(input.value);
+
+      if (
+        !Number.isInteger(
+          parsedValue
+        ) ||
+        parsedValue < 0
+      ) {
+        parsedValue = 0;
+      }
+
+      setShoppingQuantity(
+        itemId,
+        parsedValue
+      );
     }
   );
 }
 
-function bindPreparationEvents(onDayStart) {
-  const completeButton = document.querySelector(
-    "#complete-preparation-button"
-  );
+function bindPreparationEvents(
+  onDayStart
+) {
+  const completeButton =
+    document.querySelector(
+      "#complete-preparation-button"
+    );
 
-  const startButton = document.querySelector(
-    "#start-day-button"
-  );
+  const startButton =
+    document.querySelector(
+      "#start-day-button"
+    );
 
-  const errorElement = document.querySelector(
-    "#preparation-error"
-  );
+  const errorElement =
+    document.querySelector(
+      "#preparation-error"
+    );
 
   if (
     !completeButton ||
@@ -363,80 +695,104 @@ function bindPreparationEvents(onDayStart) {
 
   bindPreparationShoppingEvents();
 
-  completeButton.addEventListener("click", () => {
-    errorElement.textContent = "";
-
-    const selectedItems = SHOPPING_ITEMS
-      .filter(
-        (itemId) =>
-          shoppingCart[itemId] > 0
-      )
-      .map((itemId) => ({
-        itemId,
-        quantity: shoppingCart[itemId],
-      }));
-
-    const totalCost =
-      calculateShoppingTotal();
-
-    if (totalCost > getMoney()) {
+  completeButton.addEventListener(
+    "click",
+    () => {
       errorElement.textContent =
-        "Bạn không đủ tiền để mua số nguyên liệu này.";
+        "";
 
-      return;
-    }
+      const selectedItems =
+        SHOPPING_ITEMS
+          .filter(
+            (itemId) =>
+              shoppingCart[itemId] >
+              0
+          )
+          .map(
+            (itemId) => ({
+              itemId,
+              quantity:
+                shoppingCart[itemId],
+            })
+          );
 
-    try {
-      if (selectedItems.length > 0) {
-        buyItems(selectedItems);
-      }
-
-      completePreparation();
-
-      startButton.disabled =
-        !canStartDay();
-
-      completeButton.disabled = true;
-
-      errorElement.textContent = "";
-
-      startButton.classList.add("ready");
-
-      updatePreparationShoppingSummary();
-
-      const moneyElement =
-        document.querySelector(
-          "#preparation-money"
-        );
-
-      if (moneyElement) {
-        moneyElement.textContent =
-          formatMoney(getMoney());
-      }
-
-    } catch (error) {
-      errorElement.textContent =
-        error.message;
-    }
-  });
-
-  startButton.addEventListener("click", () => {
-    try {
-      const result =
-        startPreparedDay();
+      const totalCost =
+        calculateShoppingTotal();
 
       if (
-        typeof onDayStart ===
-        "function"
+        totalCost >
+        getMoney()
       ) {
-        onDayStart(result);
+        errorElement.textContent =
+          "Bạn không đủ tiền để mua số nguyên liệu này.";
+
+        return;
       }
 
-    } catch (error) {
-      errorElement.textContent =
-        error.message;
+      try {
+        if (
+          selectedItems.length >
+          0
+        ) {
+          buyItems(
+            selectedItems
+          );
+        }
+
+        completePreparation();
+
+        startButton.disabled =
+          !canStartDay();
+
+        completeButton.disabled =
+          true;
+
+        errorElement.textContent =
+          "";
+
+        startButton.classList.add(
+          "ready"
+        );
+
+        updatePreparationShoppingSummary();
+
+        const moneyElement =
+          document.querySelector(
+            "#preparation-money"
+          );
+
+        if (moneyElement) {
+          moneyElement.textContent =
+            formatMoney(
+              getMoney()
+            );
+        }
+      } catch (error) {
+        errorElement.textContent =
+          error.message;
+      }
     }
-  });
+  );
+
+  startButton.addEventListener(
+    "click",
+    () => {
+      try {
+        const result =
+          startPreparedDay();
+
+        if (
+          typeof onDayStart ===
+          "function"
+        ) {
+          onDayStart(result);
+        }
+      } catch (error) {
+        errorElement.textContent =
+          error.message;
+      }
+    }
+  );
 }
 
 export {
