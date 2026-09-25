@@ -1,16 +1,22 @@
-import { renderHTML, formatMoney } from "../components/uiRenderer.js";
+import { renderHTML } from "../components/uiRenderer.js";
 import { INGREDIENTS } from "../data/ingredients.js";
 import { RECIPES } from "../data/recipes.js";
+
 import {
   getCurrentCustomer,
   getCurrentGameplayOrder,
   finishCurrentSale,
 } from "../systems/gameplaySystem.js";
+
 import {
   toggleIngredient,
   getSelectedIngredients,
   resetSelection,
 } from "../systems/ingredientSelectionSystem.js";
+
+import {
+  getItemQuantity,
+} from "../systems/inventorySystem.js";
 
 const SELECTABLE_INGREDIENTS = [
   "bread",
@@ -23,21 +29,34 @@ const SELECTABLE_INGREDIENTS = [
 ];
 
 function renderIngredientButtons() {
-  return SELECTABLE_INGREDIENTS.map((ingredientId) => `
-    <button
-      type="button"
-      class="ingredient-button"
-      data-ingredient-id="${ingredientId}"
-    >
-      <span>${INGREDIENTS[ingredientId].name}</span>
-      <span
-        class="ingredient-check"
-        data-check-for="${ingredientId}"
+  return SELECTABLE_INGREDIENTS.map((ingredientId) => {
+    const quantity = getItemQuantity(ingredientId);
+    const isOutOfStock = quantity <= 0;
+
+    return `
+      <button
+        type="button"
+        class="ingredient-button"
+        data-ingredient-id="${ingredientId}"
+        ${isOutOfStock ? "disabled" : ""}
       >
-        ○
-      </span>
-    </button>
-  `).join("");
+        <span>
+          ${INGREDIENTS[ingredientId].name}
+        </span>
+
+        <span class="ingredient-quantity">
+          Còn: ${quantity}
+        </span>
+
+        <span
+          class="ingredient-check"
+          data-check-for="${ingredientId}"
+        >
+          ○
+        </span>
+      </button>
+    `;
+  }).join("");
 }
 
 function renderSelectedIngredients() {
@@ -63,6 +82,12 @@ function renderMakeBreadScreen(onResult) {
   }
 
   const recipe = RECIPES[order.recipeId];
+
+  if (!recipe) {
+    throw new Error(
+      `makeBreadScreen: recipeId "${order.recipeId}" không tồn tại.`
+    );
+  }
 
   resetSelection();
 
@@ -136,7 +161,8 @@ function refreshSelectedIngredients() {
       const selected =
         getSelectedIngredients().includes(ingredientId);
 
-      checkElement.textContent = selected ? "✓" : "○";
+      checkElement.textContent =
+        selected ? "✓" : "○";
     });
 }
 
@@ -167,13 +193,15 @@ function bindMakeBreadEvents(onResult) {
         "[data-ingredient-id]"
       );
 
-      if (!button) {
+      if (!button || button.disabled) {
         return;
       }
 
       toggleIngredient(
         button.dataset.ingredientId
       );
+
+      errorElement.textContent = "";
 
       refreshSelectedIngredients();
     }
@@ -194,4 +222,6 @@ function bindMakeBreadEvents(onResult) {
   });
 }
 
-export { renderMakeBreadScreen };
+export {
+  renderMakeBreadScreen,
+};

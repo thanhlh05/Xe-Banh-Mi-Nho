@@ -1,29 +1,39 @@
 import { renderHTML, formatMoney } from "../components/uiRenderer.js";
 import { gameState } from "../game/gameState.js";
+
 import {
   getCurrentTime,
 } from "../systems/timeSystem.js";
+
 import {
   getDayFlowState,
   DAY_FLOW_STATES,
   advanceDayTime,
   openDaySummary,
 } from "../systems/dayFlowSystem.js";
+
 import {
   createQueue,
-  hasWaitingCustomer,
-  getNextOrderId,
-  moveToNextCustomer,
   getQueueLength,
+  getCurrentQueueIndex,
 } from "../systems/customerQueueSystem.js";
+
 import {
-  startCustomerVisit,
   hasActiveCustomer,
   getCurrentCustomer,
   getCurrentGameplayOrder,
   resetGameplay,
 } from "../systems/gameplaySystem.js";
+
+import {
+  shouldSpawnCustomer,
+  spawnNextCustomer,
+  getSpawnedOrders,
+  resetSpawnSystem,
+} from "../systems/customerSpawnSystem.js";
+
 import { RECIPES } from "../data/recipes.js";
+
 import { renderMakeBreadScreen } from "./makeBreadScreen.js";
 import { renderServingResultScreen } from "./servingResultScreen.js";
 import { renderDaySummaryScreen } from "./daySummaryScreen.js";
@@ -49,16 +59,41 @@ function formatGameTime() {
 function initializeDailyQueue() {
   const currentDay = gameState.day.current;
 
-  if (queueInitializedDay === currentDay && getQueueLength() > 0) {
+  if (queueInitializedDay === currentDay) {
     return;
   }
 
   createQueue(DAILY_ORDER_IDS);
+
+  resetSpawnSystem();
+
   queueInitializedDay = currentDay;
+}
+
+function trySpawnCustomer() {
+  if (!shouldSpawnCustomer()) {
+    return false;
+  }
+
+  const result = spawnNextCustomer();
+
+  return result !== null;
+}
+
+function getCustomerProgress() {
+  const totalCustomers = getQueueLength();
+  const spawnedCustomers = getSpawnedOrders().length;
+
+  return {
+    totalCustomers,
+    spawnedCustomers,
+  };
 }
 
 function renderGameplayScreen() {
   initializeDailyQueue();
+
+  trySpawnCustomer();
 
   renderHTML(`
     <main class="screen gameplay-screen">
@@ -93,6 +128,10 @@ function renderGameplayScreen() {
           class="customer-area"
         >
           ${renderCustomerArea()}
+        </section>
+
+        <section class="gameplay-progress">
+          ${renderCustomerProgress()}
         </section>
 
         <section class="gameplay-actions">
@@ -149,54 +188,98 @@ function renderCustomerArea() {
     `;
   }
 
-  if (hasWaitingCustomer()) {
-    const nextOrderId = getNextOrderId();
+  const progress = getCustomerProgress();
 
+  if (
+    progress.spawnedCustomers >= progress.totalCustomers &&
+    progress.totalCustomers > 0
+  ) {
+    return `
+      <div class="customer-card no-customer">
+
+        <div class="customer-icon">🌙</div>
+
+        <h2>Hôm nay hết khách</h2>
+
+        <p>
+          Bạn đã phục vụ hết khách trong ngày.
+        </p>
+
+      </div>
+    `;
+  }
+
+  const currentTime = getCurrentTime();
+
+  if (
+    currentTime.hour < 6 ||
+    (
+      currentTime.hour === 6 &&
+      currentTime.minute < 30
+    )
+  ) {
     return `
       <div class="customer-card waiting-customer">
 
-        <div class="customer-icon">👋</div>
+        <div class="customer-icon">🕐</div>
 
-        <h2>Có khách đang chờ!</h2>
+        <h2>Chưa tới giờ khách</h2>
 
         <p>
-          Một khách hàng muốn mua bánh mì.
+          Khách đầu tiên sẽ xuất hiện lúc 06:30.
         </p>
-
-        <button
-          id="next-customer-button"
-          type="button"
-          class="game-button primary-button"
-        >
-          GỌI KHÁCH
-        </button>
-
-        <small>
-          Order: ${nextOrderId}
-        </small>
 
       </div>
     `;
   }
 
   return `
-    <div class="customer-card no-customer">
+    <div class="customer-card waiting-customer">
 
-      <div class="customer-icon">🪑</div>
+      <div class="customer-icon">👋</div>
 
-      <h2>Chưa có khách</h2>
+      <h2>Đang chờ khách</h2>
 
       <p>
-        Hãy chờ thêm một chút...
+        Hãy tiếp tục theo dõi thời gian.
       </p>
 
     </div>
   `;
 }
 
+function renderCustomerProgress() {
+  const progress = getCustomerProgress();
+
+  return `
+    <div class="customer-progress-card">
+
+      <div>
+        <span>Khách hôm nay</span>
+        <strong>
+          ${progress.spawnedCustomers} / ${progress.totalCustomers}
+        </strong>
+      </div>
+
+      <div>
+        <span>Rating</span>
+        <strong>
+          ${gameState.player.rating.toFixed(1)} ★
+        </strong>
+      </div>
+
+    </div>
+  `;
+}
+
 function refreshGameplay() {
+  trySpawnCustomer();
+
   const customerArea =
     document.querySelector("#customer-area");
+
+  const progressArea =
+    document.querySelector(".gameplay-progress");
 
   const timeElement =
     document.querySelector("#game-time");
@@ -206,6 +289,10 @@ function refreshGameplay() {
 
   if (customerArea) {
     customerArea.innerHTML = renderCustomerArea();
+  }
+
+  if (progressArea) {
+    progressArea.innerHTML = renderCustomerProgress();
   }
 
   if (timeElement) {
@@ -221,28 +308,6 @@ function refreshGameplay() {
 }
 
 function bindCustomerButton() {
-  const nextCustomerButton = document.querySelector(
-    "#next-customer-button"
-  );
-
-  if (nextCustomerButton) {
-    nextCustomerButton.addEventListener("click", () => {
-      try {
-        const orderId = moveToNextCustomer();
-
-        if (!orderId) {
-          return;
-        }
-
-        startCustomerVisit(orderId);
-
-        refreshGameplay();
-      } catch (error) {
-        console.error(error);
-      }
-    });
-  }
-
   const serveButton = document.querySelector(
     "#serve-customer-button"
   );
@@ -300,4 +365,7 @@ function bindGameplayEvents() {
   bindCustomerButton();
 }
 
-export { renderGameplayScreen, refreshGameplay };
+export {
+  renderGameplayScreen,
+  refreshGameplay,
+};

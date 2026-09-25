@@ -110,6 +110,10 @@ function shouldSpawnCustomer() {
     return false;
   }
 
+  if (hasAlreadySpawned(nextOrderId)) {
+    return false;
+  }
+
   const spawnIndex = spawnedOrders.length;
 
   if (spawnIndex >= CUSTOMER_SPAWN_TIMES.length) {

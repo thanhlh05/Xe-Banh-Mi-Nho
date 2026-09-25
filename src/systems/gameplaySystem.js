@@ -1,10 +1,12 @@
 import { CUSTOMERS } from "../data/customers.js";
 import { SAMPLE_ORDERS } from "../data/orders.js";
+
 import {
   startSale,
   canCompleteSale,
   completeSale,
 } from "./salesSystem.js";
+
 import {
   recordCustomer,
   recordBreadSold,
@@ -12,22 +14,33 @@ import {
   recordRating,
   recordIngredientCost,
 } from "./statisticsSystem.js";
+
 import {
   getDayFlowState,
   DAY_FLOW_STATES,
 } from "./dayFlowSystem.js";
+
 import {
   evaluateOrder,
   calculateRating,
   calculatePayment,
 } from "./customerResultSystem.js";
+
 import { gameState } from "../game/gameState.js";
+
 import {
   setRecipe,
   getSelectedIngredients,
   clearSelectedIngredients,
 } from "./ingredientSelectionSystem.js";
+
 import { recordCustomerVisit } from "./regularCustomerSystem.js";
+
+import {
+  getMissingIngredients,
+} from "./cookingSystem.js";
+
+import { INGREDIENTS } from "../data/ingredients.js";
 
 let currentCustomer = null;
 let currentOrder = null;
@@ -62,20 +75,28 @@ function getOrderById(orderId) {
 }
 
 function startCustomerVisit(orderId) {
-  if (getDayFlowState() !== DAY_FLOW_STATES.PLAYING) {
+  if (
+    getDayFlowState() !==
+    DAY_FLOW_STATES.PLAYING
+  ) {
     throw new Error(
       `gameplaySystem: không thể đón khách khi trạng thái hiện tại là "${getDayFlowState()}".`
     );
   }
 
-  if (currentCustomer !== null || currentOrder !== null) {
+  if (
+    currentCustomer !== null ||
+    currentOrder !== null
+  ) {
     throw new Error(
       "gameplaySystem: hiện đang có một khách hàng/order đang được xử lý."
     );
   }
 
   const order = getOrderById(orderId);
-  const customer = getCustomerById(order.customerId);
+  const customer = getCustomerById(
+    order.customerId
+  );
 
   startSale(orderId);
 
@@ -84,9 +105,12 @@ function startCustomerVisit(orderId) {
   lastSaleResult = null;
 
   setRecipe(order.recipeId);
-  
+
   recordCustomer();
-  recordCustomerVisit(customer.id, order.recipeId);
+  recordCustomerVisit(
+    customer.id,
+    order.recipeId
+  );
 
   return {
     customer,
@@ -103,7 +127,10 @@ function getCurrentGameplayOrder() {
 }
 
 function hasActiveCustomer() {
-  return currentCustomer !== null && currentOrder !== null;
+  return (
+    currentCustomer !== null &&
+    currentOrder !== null
+  );
 }
 
 function canFinishCurrentSale() {
@@ -121,7 +148,8 @@ function finishCurrentSale() {
     );
   }
 
-  const selectedIngredients = getSelectedIngredients();
+  const selectedIngredients =
+    getSelectedIngredients();
 
   const recipeId = currentOrder.recipeId;
 
@@ -134,13 +162,28 @@ function finishCurrentSale() {
   const payment = calculatePayment(result);
 
   if (!canCompleteSale()) {
+    const missingIngredients =
+      getMissingIngredients(recipeId);
+
+    const missingNames =
+      missingIngredients.map(
+        (ingredientId) => {
+          return INGREDIENTS[ingredientId]
+            ? INGREDIENTS[ingredientId].name
+            : ingredientId;
+        }
+      );
+
     throw new Error(
-      "gameplaySystem: không đủ nguyên liệu để hoàn thành order hiện tại."
+      `Không đủ nguyên liệu trong kho: ${missingNames.join(", ")}.`
     );
   }
 
   const saleResult = completeSale();
-  recordIngredientCost(saleResult.ingredientCost);
+
+  recordIngredientCost(
+    saleResult.ingredientCost
+  );
 
   if (payment < saleResult.earnedMoney) {
     gameState.player.money =
@@ -162,7 +205,9 @@ function finishCurrentSale() {
     correctCount: result.correctCount,
     missingCount: result.missingCount,
     extraCount: result.extraCount,
-    selectedIngredients: [...selectedIngredients],
+    selectedIngredients: [
+      ...selectedIngredients,
+    ],
   };
 
   clearSelectedIngredients();
