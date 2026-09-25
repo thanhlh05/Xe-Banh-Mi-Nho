@@ -14,9 +14,7 @@ import {
   resetSelection,
 } from "../systems/ingredientSelectionSystem.js";
 
-import {
-  getItemQuantity,
-} from "../systems/inventorySystem.js";
+import { getItemQuantity } from "../systems/inventorySystem.js";
 
 const SELECTABLE_INGREDIENTS = [
   "bread",
@@ -28,32 +26,62 @@ const SELECTABLE_INGREDIENTS = [
   "cucumber",
 ];
 
-function renderIngredientButtons() {
+function renderRequiredIngredients(recipe) {
+  return recipe.ingredients
+    .map((ingredientId) => {
+      const ingredient = INGREDIENTS[ingredientId];
+      const quantity = getItemQuantity(ingredientId);
+
+      return `
+        <div class="required-ingredient">
+          <span>
+            ${ingredient.name}
+          </span>
+
+          <strong>
+            ${quantity > 0 ? "✓ Có" : "✗ Hết"}
+          </strong>
+        </div>
+      `;
+    })
+    .join("");
+}
+
+function renderIngredientButtons(recipe) {
   return SELECTABLE_INGREDIENTS.map((ingredientId) => {
+    const ingredient = INGREDIENTS[ingredientId];
     const quantity = getItemQuantity(ingredientId);
-    const isOutOfStock = quantity <= 0;
+    const isRequired =
+      recipe.ingredients.includes(ingredientId);
+
+    const isEmpty = quantity <= 0;
 
     return `
       <button
         type="button"
         class="ingredient-button"
         data-ingredient-id="${ingredientId}"
-        ${isOutOfStock ? "disabled" : ""}
+        ${isEmpty ? "disabled" : ""}
       >
-        <span>
-          ${INGREDIENTS[ingredientId].name}
-        </span>
 
-        <span class="ingredient-quantity">
-          Còn: ${quantity}
+        <span class="ingredient-button-main">
+          <strong>
+            ${ingredient.name}
+          </strong>
+
+          <small>
+            Có: ${quantity}
+            ${isRequired ? " · Cần" : ""}
+          </small>
         </span>
 
         <span
           class="ingredient-check"
           data-check-for="${ingredientId}"
         >
-          ○
+          ${isEmpty ? "HẾT" : "○"}
         </span>
+
       </button>
     `;
   }).join("");
@@ -67,7 +95,10 @@ function renderSelectedIngredients() {
   }
 
   return selected
-    .map((ingredientId) => INGREDIENTS[ingredientId].name)
+    .map(
+      (ingredientId) =>
+        INGREDIENTS[ingredientId]?.name || ingredientId
+    )
     .join(", ");
 }
 
@@ -93,10 +124,14 @@ function renderMakeBreadScreen(onResult) {
 
   renderHTML(`
     <main class="screen make-bread-screen">
+
       <section class="game-card make-bread-card">
 
         <div class="screen-header">
-          <div class="screen-icon">🥖</div>
+
+          <div class="screen-icon">
+            🥖
+          </div>
 
           <h1>Làm bánh</h1>
 
@@ -104,28 +139,51 @@ function renderMakeBreadScreen(onResult) {
             Khách hàng:
             <strong>${customer.name}</strong>
           </p>
+
         </div>
 
         <div class="customer-order">
+
           <span>Khách gọi:</span>
-          <strong>${recipe.name}</strong>
+
+          <strong>
+            ${recipe.name}
+          </strong>
+
+        </div>
+
+        <h2>Nguyên liệu cần có</h2>
+
+        <div class="required-ingredients">
+          ${renderRequiredIngredients(recipe)}
         </div>
 
         <h2>Chọn nguyên liệu</h2>
 
+        <p class="ingredient-selection-help">
+          Chọn những nguyên liệu bạn muốn cho vào bánh.
+        </p>
+
         <div class="ingredient-selection">
-          ${renderIngredientButtons()}
+
+          ${renderIngredientButtons(recipe)}
+
         </div>
 
         <div class="selected-ingredients">
+
           <span>Đã chọn:</span>
 
           <strong id="selected-ingredients-text">
             Chưa chọn nguyên liệu
           </strong>
+
         </div>
 
-        <p id="make-bread-error" class="form-error"></p>
+        <p
+          id="make-bread-error"
+          class="form-error"
+        ></p>
 
         <button
           id="confirm-bread-button"
@@ -136,6 +194,7 @@ function renderMakeBreadScreen(onResult) {
         </button>
 
       </section>
+
     </main>
   `);
 
@@ -159,7 +218,17 @@ function refreshSelectedIngredients() {
         checkElement.dataset.checkFor;
 
       const selected =
-        getSelectedIngredients().includes(ingredientId);
+        getSelectedIngredients().includes(
+          ingredientId
+        );
+
+      const quantity =
+        getItemQuantity(ingredientId);
+
+      if (quantity <= 0) {
+        checkElement.textContent = "HẾT";
+        return;
+      }
 
       checkElement.textContent =
         selected ? "✓" : "○";
@@ -168,13 +237,19 @@ function refreshSelectedIngredients() {
 
 function bindMakeBreadEvents(onResult) {
   const ingredientSelection =
-    document.querySelector(".ingredient-selection");
+    document.querySelector(
+      ".ingredient-selection"
+    );
 
   const confirmButton =
-    document.querySelector("#confirm-bread-button");
+    document.querySelector(
+      "#confirm-bread-button"
+    );
 
   const errorElement =
-    document.querySelector("#make-bread-error");
+    document.querySelector(
+      "#make-bread-error"
+    );
 
   if (
     !ingredientSelection ||
@@ -189,37 +264,49 @@ function bindMakeBreadEvents(onResult) {
   ingredientSelection.addEventListener(
     "click",
     (event) => {
-      const button = event.target.closest(
-        "[data-ingredient-id]"
-      );
+      const button =
+        event.target.closest(
+          "[data-ingredient-id]"
+        );
 
-      if (!button || button.disabled) {
+      if (!button) {
         return;
       }
 
-      toggleIngredient(
-        button.dataset.ingredientId
-      );
+      const ingredientId =
+        button.dataset.ingredientId;
 
-      errorElement.textContent = "";
+      if (getItemQuantity(ingredientId) <= 0) {
+        return;
+      }
+
+      toggleIngredient(ingredientId);
 
       refreshSelectedIngredients();
     }
   );
 
-  confirmButton.addEventListener("click", () => {
-    errorElement.textContent = "";
+  confirmButton.addEventListener(
+    "click",
+    () => {
+      errorElement.textContent = "";
 
-    try {
-      const result = finishCurrentSale();
+      try {
+        const result =
+          finishCurrentSale();
 
-      if (typeof onResult === "function") {
-        onResult(result);
+        if (
+          typeof onResult === "function"
+        ) {
+          onResult(result);
+        }
+
+      } catch (error) {
+        errorElement.textContent =
+          error.message;
       }
-    } catch (error) {
-      errorElement.textContent = error.message;
     }
-  });
+  );
 }
 
 export {
